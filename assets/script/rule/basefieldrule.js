@@ -70,7 +70,8 @@ cc.Class({
             other_aabb = cc.rectApplyAffineTransform(other_aabb, other_trans);
         }
         var rslt = cc.Intersection.rectRect(self_aabb, other_aabb);
-        if( rslt && ! this.get_rule_prop('rect_field') ) {
+        if( rslt && ! (this.get_rule_prop('rect_field')
+            && other.get_rule_prop('rect_field')) ) {
             var self_points = self_world.points;
             if(self_trans) {
                 self_points = this.points_apply_affine_transform(

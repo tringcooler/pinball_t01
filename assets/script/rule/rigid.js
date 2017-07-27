@@ -146,6 +146,36 @@ cc.Class({
         };
     },
     
+    _points_points_intersect_line: function (src, dst) {
+        for ( i = 0, l = dst.length; i < l; ++i ) {
+            var d1 = dst[i];
+            var d2 = dst[(i+1)%l];
+            if ( cc.Intersection.linePolygon( d1, d2, src ) ) {
+                return [d1, d2, i];
+            }
+        }
+    },
+    
+    _get_collision_contacts: function (rev_dt) {
+        var coll_ta = this.rev_trans(
+            rev_dt - this._dichotomy_tree_rev_dt().precision);
+        var coll_ps = this.points_apply_affine_transform(coll_ta);
+        var contacts = [];
+        this.foreach_interact('rigid', function (field) {
+            var other_ps = field.get_world(field).points;
+            var tl = this._points_points_intersect_line(coll_ps, other_ps);
+            if(tl) {
+                contacts.push({
+                    field: field,
+                    idxline: tl[2],
+                    p1: tl[0],
+                    p2: tl[1],
+                });
+            }
+        });
+        return contacts;
+    },
+    
     _get_collision_moment: function () {
         var dichotomy = util.dichotomy;
         var _chk_collision = (function (dt) {
@@ -160,30 +190,18 @@ cc.Class({
         return dichotomy(this._dichotomy_tree_rev_dt().tree, _chk_collision);
     },
     
-    _points_points_intersect_line: function (src, dst) {
-        for ( i = 0, l = dst.length; i < l; ++i ) {
-            var d1 = dst[i];
-            var d2 = dst[(i+1)%l];
-            if ( cc.Intersection.linePolygon( d1, d2, src ) ) {
-                return [d1, d2, i];
-            }
+    _get_collision_moment_rect: function () {
+        if(!this.get_rule_prop('rect_field')) {
+            return undefined;
         }
-    },
-    
-    _get_collision_tangent: function (rev_dt) {
-        var coll_ta = this.rev_trans(
-            rev_dt - this._dichotomy_tree_rev_dt().precision);
-        var coll_ps = this.points_apply_affine_transform(coll_ta);
-        var target, tangent;
-        this.foreach_interact('rigid', function (field) {
-            var other_ps = field.get_world(field).points;
-            target = field;
-            tangent = this._points_points_intersect_line(coll_ps, other_ps);
-            if(tangent) {
+        var brk = false === this.foreach_interact('rigid', function (field) {
+            if(!field.get_rule_prop('rect_field')) {
                 return false;
             }
         });
-        return [tangent[0], tangent[1], target, tangent[2]];
+        if(brk) {
+            return undefined;
+        }
     },
     
     update_movable: function () {
@@ -192,8 +210,8 @@ cc.Class({
             return;
         }
         var rev_dt = this._get_collision_moment();
-        var tangent = this._get_collision_tangent(rev_dt);
-        console.log(rev_dt, tangent[2].name, tangent[0], tangent[1]);
+        var contacts = this._get_collision_contacts(rev_dt);
+        console.log(rev_dt, contacts[0].field.name, contacts[0].p1, contacts[0].p2);
         var rev_m_trans = this.rev_trans(rev_dt);
         this.apply_affine(rev_m_trans);
         this._update_pre_trans(rev_m_trans);
