@@ -287,7 +287,8 @@
     },
     "_enabled": true,
     "bypass": false,
-    "rect_field": false
+    "rect_field": false,
+    "movable": false
   },
   {
     "__type__": "cc.Node",
@@ -373,7 +374,8 @@
     },
     "_enabled": true,
     "bypass": false,
-    "rect_field": false
+    "rect_field": false,
+    "movable": false
   },
   {
     "__type__": "cc.Node",
@@ -431,7 +433,7 @@
     "_scaleY": 1.5,
     "_position": {
       "__type__": "cc.Vec2",
-      "x": -99,
+      "x": -97,
       "y": 0
     },
     "_skewX": 0,
@@ -515,7 +517,8 @@
     },
     "_enabled": true,
     "bypass": false,
-    "rect_field": false
+    "rect_field": false,
+    "movable": true
   },
   {
     "__type__": "883ab785o5Hyb2eGC69Q5y/",
@@ -530,7 +533,7 @@
     "speed": {
       "__type__": "cc.Vec2",
       "x": 0,
-      "y": -50
+      "y": -100
     },
     "accelerate": {
       "__type__": "cc.Vec2",

@@ -18,7 +18,7 @@ cc.Class({
         // ...
         
         rect_field: false,
-        
+        movable: true,
     },
     
     statics: {
@@ -107,14 +107,43 @@ cc.Class({
         }
     },
     
-    _dichotomy_tree_rev_dt: function () {
+    // min un-collision
+    _1_dichotomy_tree_rev_dt: function () {
         return [
             0.5, [
                 0.2, [0.1, 0.1, 0.2], [0.3, 0.3, [0.4, 0.4, 0.5]]
             ], [
-                0.7, [0.6, 0.6, 0.7], [0.8, 0.8, [0.9, 0.9, 1.0]]
+                //0.7, [0.6, 0.6, 0.7], [0.8, 0.8, [0.9, 0.9, 1.0]]
+                0.8, [0.6, 0.6, [0.7, 0.7, 0.8]], [0.9, 0.9, 1.0]
             ]
         ];
+    },
+    
+    // max collision
+    _2_dichotomy_tree_rev_dt: function () {
+        return [
+            0.5, [
+                0.2, [0.1, 0.0, 0.1], [0.3, 0.2, [0.4, 0.3, 0.4]]
+            ], [
+                0.7, [0.6, 0.5, 0.6], [0.8, 0.7, [0.9, 0.8, 0.9]]
+            ]
+        ];
+    },
+    
+    _dichotomy_tree_rev_dt: function () {
+        return {
+            tree: [
+                0.9, [
+                    0.4, [
+                        0.2, [0.1, 0.1, 0.2], [0.3, 0.3, 0.4]
+                    ], [
+                        0.6, [0.5, 0.5, 0.6], [
+                            0.8, [0.7, 0.7, 0.8], 0.9
+                        ]
+                    ]
+                ], 1.0 ],
+            precision: 0.1,
+        };
     },
     
     _get_collision_moment: function () {
@@ -128,7 +157,46 @@ cc.Class({
             });
             return (chk !== false);
         }).bind(this);
-        return dichotomy(this._dichotomy_tree_rev_dt(), _chk_collision);
+        return dichotomy(this._dichotomy_tree_rev_dt().tree, _chk_collision);
+    },
+    
+    _points_points_intersect_line: function (src, dst) {
+        for ( i = 0, l = dst.length; i < l; ++i ) {
+            var d1 = dst[i];
+            var d2 = dst[(i+1)%l];
+            if ( cc.Intersection.linePolygon( d1, d2, src ) ) {
+                return [d1, d2, i];
+            }
+        }
+    },
+    
+    _get_collision_tangent: function (rev_dt) {
+        var coll_ta = this.rev_trans(
+            rev_dt - this._dichotomy_tree_rev_dt().precision);
+        var coll_ps = this.points_apply_affine_transform(coll_ta);
+        var target, tangent;
+        this.foreach_interact('rigid', function (field) {
+            var other_ps = field.get_world(field).points;
+            target = field;
+            tangent = this._points_points_intersect_line(coll_ps, other_ps);
+            if(tangent) {
+                return false;
+            }
+        });
+        return [tangent[0], tangent[1], target, tangent[2]];
+    },
+    
+    update_movable: function () {
+        this.calc_rev_factors();
+        if(!this.has_interact('rigid')) {
+            return;
+        }
+        var rev_dt = this._get_collision_moment();
+        var tangent = this._get_collision_tangent(rev_dt);
+        console.log(rev_dt, tangent[2].name, tangent[0], tangent[1]);
+        var rev_m_trans = this.rev_trans(rev_dt);
+        this.apply_affine(rev_m_trans);
+        this._update_pre_trans(rev_m_trans);
     },
     
     init_rule: function () {
@@ -145,14 +213,9 @@ cc.Class({
     
     update_rule: function (dt) {
         this._super();
-        this.calc_rev_factors();
-        if(!this.has_interact('rigid')) {
-            return;
+        if(this.movable) {
+            this.update_movable();
         }
-        var rev_dt = this._get_collision_moment();
-        var rev_m_trans = this.rev_trans(rev_dt);
-        this.apply_affine(rev_m_trans);
-        this._update_pre_trans(rev_m_trans);
     },
 
     // use this for initialization

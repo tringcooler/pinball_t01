@@ -45,7 +45,10 @@ cc.Class({
         return rslt;
     },
     
-    points_apply_affine_transform: function (points, trans) {
+    points_apply_affine_transform: function (trans, points = null) {
+        if(points === null) {
+            points = this.get_world(this).points;
+        }
         var r = [];
         for(var i = 0; i < points.length; i ++) {
             var p = points[i];
@@ -71,12 +74,12 @@ cc.Class({
             var self_points = self_world.points;
             if(self_trans) {
                 self_points = this.points_apply_affine_transform(
-                    self_points, self_trans);
+                    self_trans, self_points);
             }
             var other_points = other_world.points;
             if(other_trans) {
                 other_points = this.points_apply_affine_transform(
-                    other_points, other_trans);
+                    other_trans, other_points);
             }
             rslt = cc.Intersection.polygonPolygon(self_points, other_points);
         }
