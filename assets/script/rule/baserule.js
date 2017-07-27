@@ -1,3 +1,4 @@
+var util = require('util');
 var ruler = require('ruler');
 
 cc.Class({
@@ -90,6 +91,34 @@ cc.Class({
         } else {
             return this._inited;
         }
+    },
+    
+    set_n2p_affine: function (af) {
+        var skscrt = util.affine.affine2skscrt(af);
+        var ONE_DEGREE = Math.PI / 180;
+        this.node.skewX = Math.atan(skscrt[0]) / ONE_DEGREE;
+        this.node.skewY = Math.atan(skscrt[1]) / ONE_DEGREE;
+        this.node.scaleX = skscrt[2];
+        this.node.scaleY = skscrt[3];
+        this.node.rotation = skscrt[4] / ONE_DEGREE;
+        this.node.x = skscrt[5];
+        this.node.y = skscrt[6];
+    },
+    
+    set_n2w_affine: function (af) {
+        var prt_ta = this.node.parent.getNodeToWorldTransformAR();
+        var prt_af = util.affine.dot(cc.affineTransformInvert(prt_ta), af);
+        return this.set_n2p_affine(prt_af);
+    },
+    
+    apply_affine: function (af) {
+        //var cur = this.node.getNodeToParentTransformAR();
+        // not already updated after other rule's change
+        // this return the status of update routing began after render
+        var cur = this.node.getNodeToWorldTransformAR();
+        var aft = util.affine.dot(cur, af);
+        //console.log(af.tx, af.ty, aft.tx, aft.ty);
+        return this.set_n2w_affine(aft);
     },
     
     init_rule: function () {

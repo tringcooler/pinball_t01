@@ -431,8 +431,8 @@
     "_scaleY": 1.5,
     "_position": {
       "__type__": "cc.Vec2",
-      "x": -226,
-      "y": -77
+      "x": -99,
+      "y": 0
     },
     "_skewX": 0,
     "_skewY": 0,
@@ -530,7 +530,7 @@
     "speed": {
       "__type__": "cc.Vec2",
       "x": 0,
-      "y": -100
+      "y": -50
     },
     "accelerate": {
       "__type__": "cc.Vec2",
