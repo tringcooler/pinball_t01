@@ -46,7 +46,7 @@ cc.Class({
     },
     
     points_apply_affine_transform: function (points, trans) {
-        r = [];
+        var r = [];
         for(var i = 0; i < points.length; i ++) {
             var p = points[i];
             p = cc.pointApplyAffineTransform(p, trans);
@@ -78,7 +78,7 @@ cc.Class({
                 other_points = this.points_apply_affine_transform(
                     other_points, other_trans);
             }
-            rslt = cc.Intersection.polygonPolygon(world_pos, self_world.points);
+            rslt = cc.Intersection.polygonPolygon(self_points, other_points);
         }
         return rslt;
     },

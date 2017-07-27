@@ -27,6 +27,7 @@ cc.Class({
     },
     
     _calc_rev_trans: function () {
+        // when recalc after apply affine, world's transform is not already updated
         var cur_trans = this.get_world(this).transform;
         if(!cur_trans) return;
         this.rev_factors.trans = cc.affineTransformConcat(
@@ -119,10 +120,19 @@ cc.Class({
     
     apply_affine: function (af) {
         //var cur = this.node.getNodeToParentTransformAR();
+        // not already updated after other rule's change
+        // this return the status of update routing began after render
         var cur = this.node.getNodeToWorldTransformAR();
         var aft = util.affine.dot(cur, af);
         //console.log(af.tx, af.ty, aft.tx, aft.ty);
         return this.set_n2w_affine(aft);
+    },
+    
+    _update_pre_trans: function (af) {
+        if(!this.get_rule_prop('rect_field')) {
+            this.rev_factors.pre_trans = util.affine.dot(
+                this.rev_factors.pre_trans, af);
+        }
     },
     
     _dichotomy_tree_rev_dt: function () {
@@ -144,9 +154,9 @@ cc.Class({
                     return false;
                 }
             });
-            return (chk === false);
+            return (chk !== false);
         }).bind(this);
-        return dichotomy(this._dichotomy_tree_rev_dt, _chk_collision);
+        return dichotomy(this._dichotomy_tree_rev_dt(), _chk_collision);
     },
     
     init_rule: function () {
@@ -168,6 +178,9 @@ cc.Class({
             return;
         }
         var rev_dt = this._get_collision_moment();
+        var rev_m_trans = this.rev_trans(rev_dt);
+        this.apply_affine(rev_m_trans);
+        this._update_pre_trans(rev_m_trans);
     },
 
     // use this for initialization
