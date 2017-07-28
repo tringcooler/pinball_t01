@@ -29,13 +29,29 @@ cc.Class({
     _calc_rev_trans: function () {
         // when recalc after apply affine, world's transform is not already updated
         var cur_trans = this.get_world(this).transform;
+        var cur_trans_ = this.node.getNodeToWorldTransformAR();
+        if(!cc.affineTransformEqualToTransform(cur_trans, cur_trans_)) {
+            throw 'cur_trans ' + cur_trans + ' ' + cur_trans_;
+        }
         if(!cur_trans) return;
-        this.rev_factors.trans = cc.affineTransformConcat(
-            this.rev_factors.pre_trans,
-            cc.affineTransformInvert(cur_trans));
+        //this.rev_factors.trans = cc.affineTransformConcat(
+        //    this.rev_factors.pre_trans,
+        //    cc.affineTransformInvert(cur_trans));
+        // PX = CRX R is local affine
         //this.rev_factors.trans = util.affine.dot(
         //    cc.affineTransformInvert(cur_trans),
         //    this.rev_factors.pre_trans);
+        // PX = RCX R is world affine
+        this.rev_factors.trans = util.affine.dot(
+            this.rev_factors.pre_trans,
+            cc.affineTransformInvert(cur_trans));
+        console.log('PCR',
+            this.rev_factors.pre_trans.tx,
+            this.rev_factors.pre_trans.ty,
+            cur_trans.tx,
+            cur_trans.ty,
+            this.rev_factors.trans.tx,
+            this.rev_factors.trans.ty);
         this.rev_factors.pre_trans = cc.affineTransformClone(cur_trans);
     },
     
@@ -76,7 +92,7 @@ cc.Class({
         if(mask & 0x1) {
             var rsr = this.rev_factors.r1sr1;
             var r1 = util.affine.rotate(rsr[0]);
-            var sc = util.affine.scale(1 + (rsr[1] - 1) * dt, 1 + (rsr[2] - 1) * dt)
+            var sc = util.affine.scale(1 + (rsr[1] - 1) * dt, 1 + (rsr[2] - 1) * dt);
             var r1i = util.affine.rotate(-rsr[0]);
             a = util.affine.dot(util.affine.dot(r1i, util.affine.dot(sc, r1)), a);
         }
@@ -102,8 +118,12 @@ cc.Class({
     
     _update_pre_trans: function (af) {
         if(!this.get_rule_prop('rect_field')) {
+            // loc affine
+            //this.rev_factors.pre_trans = util.affine.dot(
+            //    this.rev_factors.pre_trans, af);
+            // world affine
             this.rev_factors.pre_trans = util.affine.dot(
-                this.rev_factors.pre_trans, af);
+                af, this.rev_factors.pre_trans);
         }
     },
     
@@ -146,6 +166,34 @@ cc.Class({
         };
     },
     
+    _get_collision_moment: function () {
+        var dichotomy = util.dichotomy;
+        var _chk_collision = (function (dt) {
+            var rev_trans = this.rev_trans(dt);
+            var chk = this.foreach_interact('rigid', function (field) {
+                if(this.field_field(field, rev_trans)) {
+                    return false;
+                }
+            });
+            return (chk !== false);
+        }).bind(this);
+        return dichotomy(this._dichotomy_tree_rev_dt().tree, _chk_collision);
+    },
+    
+    _get_collision_moment_rect: function () {
+        if(!this.get_rule_prop('rect_field')) {
+            return undefined;
+        }
+        var brk = false === this.foreach_interact('rigid', function (field) {
+            if(!field.get_rule_prop('rect_field')) {
+                return false;
+            }
+        });
+        if(brk) {
+            return undefined;
+        }
+    },
+    
     _points_points_intersect_line: function (src, dst) {
         for ( i = 0, l = dst.length; i < l; ++i ) {
             var d1 = dst[i];
@@ -176,45 +224,30 @@ cc.Class({
         return contacts;
     },
     
-    _get_collision_moment: function () {
-        var dichotomy = util.dichotomy;
-        var _chk_collision = (function (dt) {
-            var rev_trans = this.rev_trans(dt);
-            var chk = this.foreach_interact('rigid', function (field) {
-                if(this.field_field(field, rev_trans)) {
-                    return false;
-                }
-            });
-            return (chk !== false);
-        }).bind(this);
-        return dichotomy(this._dichotomy_tree_rev_dt().tree, _chk_collision);
-    },
-    
-    _get_collision_moment_rect: function () {
-        if(!this.get_rule_prop('rect_field')) {
-            return undefined;
-        }
-        var brk = false === this.foreach_interact('rigid', function (field) {
-            if(!field.get_rule_prop('rect_field')) {
-                return false;
-            }
-        });
-        if(brk) {
-            return undefined;
-        }
-    },
-    
     update_movable: function () {
+        this.update_world(this);
+        var _t1 = this.rev_factors.pre_trans.ty;
         this.calc_rev_factors();
+        console.log('pre', this.name, _t1, this.rev_factors.pre_trans.ty);
         if(!this.has_interact('rigid')) {
             return;
         }
+        console.log('slfps', this.name, this.get_world().points[0]);
         var rev_dt = this._get_collision_moment();
         var contacts = this._get_collision_contacts(rev_dt);
-        console.log(rev_dt, contacts[0].field.name, contacts[0].p1, contacts[0].p2);
+        //console.log(rev_dt, contacts[0].field.name, contacts[0].p1, contacts[0].p2);
+        //rev_dt = 1; //!alert!
         var rev_m_trans = this.rev_trans(rev_dt);
-        this.apply_affine(rev_m_trans);
+        //rev_m_trans = cc.affineTransformMake(1,0,0,1,0,100);
+        console.log('prex', this.node.x, this.rev_factors.pre_trans.tx);
+        //this.apply_loc_affine(rev_m_trans);
+        this.apply_world_affine(rev_m_trans);
         this._update_pre_trans(rev_m_trans);
+        this.node.setNodeDirty();
+        console.log('cur', this.name, rev_dt, this.node.y, this.get_world().transform.ty);
+        console.log('curx', this.node.x, this.get_world().transform.tx);
+        //var _t = this.node.getComponent('inertia');
+        //_t.speed = cc.Vec2.ZERO;
     },
     
     init_rule: function () {
@@ -232,6 +265,9 @@ cc.Class({
     update_rule: function (dt) {
         this._super();
         if(this.movable) {
+            if(dt > 0.1) {
+                console.log('break here');
+            }
             this.update_movable();
         }
     },

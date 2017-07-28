@@ -42,6 +42,7 @@ cc.Class({
         nd.x += this.speed.x * dt;
         nd.y += this.speed.y * dt;
         this.accelerate = cc.Vec2.ZERO;
+        this.node.setNodeDirty();
     },
 
     // use this for initialization

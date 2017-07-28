@@ -115,6 +115,8 @@ cc.Class({
 
     // called every frame, uncomment this function to activate update callback
     update: function (dt) {
+        //if(dt > 0.1) dt = 0.1; //!alert!
+        console.log(dt);
         this.update_rules(dt);
     },
 });

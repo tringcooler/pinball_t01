@@ -111,12 +111,22 @@ cc.Class({
         return this.set_n2p_affine(prt_af);
     },
     
-    apply_affine: function (af) {
+    apply_loc_affine: function (af) {
         //var cur = this.node.getNodeToParentTransformAR();
         // not already updated after other rule's change
         // this return the status of update routing began after render
         var cur = this.node.getNodeToWorldTransformAR();
         var aft = util.affine.dot(cur, af);
+        //console.log(af.tx, af.ty, aft.tx, aft.ty);
+        return this.set_n2w_affine(aft);
+    },
+    
+    apply_world_affine: function (af) {
+        //var cur = this.node.getNodeToParentTransformAR();
+        // not already updated after other rule's change
+        // this return the status of update routing began after render
+        var cur = this.node.getNodeToWorldTransformAR();
+        var aft = util.affine.dot(af, cur);
         //console.log(af.tx, af.ty, aft.tx, aft.ty);
         return this.set_n2w_affine(aft);
     },

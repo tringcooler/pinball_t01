@@ -35,6 +35,15 @@ cc.Class({
         return col.world;
     },
     
+    update_world: function (field = null) {
+        if(field === null) {
+            field = this;
+        }
+        var cm = cc.director.getCollisionManager();
+        var col = field.node.getComponent(cc.Collider);
+        cm.updateCollider(col);
+    },
+    
     point_in_field: function(loc_pos) {
         var world_pos = this.node.convertToWorldSpaceAR(loc_pos);
         var self_world = this.get_world(this);
@@ -73,16 +82,19 @@ cc.Class({
         if( rslt && ! (this.get_rule_prop('rect_field')
             && other.get_rule_prop('rect_field')) ) {
             var self_points = self_world.points;
+            console.log('ff1', this.name, self_points[0], self_points[1], self_points[2], self_points[3]);
             if(self_trans) {
                 self_points = this.points_apply_affine_transform(
                     self_trans, self_points);
             }
+            console.log('ff2', self_points[0], self_points[1], self_points[2], self_points[3]);
             var other_points = other_world.points;
             if(other_trans) {
                 other_points = this.points_apply_affine_transform(
                     other_trans, other_points);
             }
             rslt = cc.Intersection.polygonPolygon(self_points, other_points);
+            console.log('ff3', rslt, other_points[0], other_points[1], other_points[2], other_points[3]);
         }
         return rslt;
     },
