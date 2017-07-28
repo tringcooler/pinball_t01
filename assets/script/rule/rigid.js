@@ -22,18 +22,18 @@ cc.Class({
     },
     
     statics: {
-        rule_priority: 15,
+        rule_priority: 1,
         rule_interacts: ['rigid'],
     },
     
     _calc_rev_trans: function () {
         // when recalc after apply affine, world's transform is not already updated
         var cur_trans = this.get_world(this).transform;
+        if(!cur_trans) return;
         var cur_trans_ = this.node.getNodeToWorldTransformAR();
         if(!cc.affineTransformEqualToTransform(cur_trans, cur_trans_)) {
             throw 'cur_trans ' + cur_trans + ' ' + cur_trans_;
         }
-        if(!cur_trans) return;
         //this.rev_factors.trans = cc.affineTransformConcat(
         //    this.rev_factors.pre_trans,
         //    cc.affineTransformInvert(cur_trans));
@@ -225,7 +225,7 @@ cc.Class({
     },
     
     update_movable: function () {
-        this.update_world(this);
+        //this.update_world(this);
         var _t1 = this.rev_factors.pre_trans.ty;
         this.calc_rev_factors();
         console.log('pre', this.name, _t1, this.rev_factors.pre_trans.ty);
