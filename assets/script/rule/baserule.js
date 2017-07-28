@@ -103,6 +103,7 @@ cc.Class({
         this.node.rotation = skscrt[4] / ONE_DEGREE;
         this.node.x = skscrt[5];
         this.node.y = skscrt[6];
+        this.node.setNodeDirty();
     },
     
     set_n2w_affine: function (af) {

@@ -243,7 +243,6 @@ cc.Class({
         //this.apply_loc_affine(rev_m_trans);
         this.apply_world_affine(rev_m_trans);
         this._update_pre_trans(rev_m_trans);
-        this.node.setNodeDirty();
         console.log('cur', this.name, rev_dt, this.node.y, this.get_world().transform.ty);
         console.log('curx', this.node.x, this.get_world().transform.tx);
         //var _t = this.node.getComponent('inertia');
