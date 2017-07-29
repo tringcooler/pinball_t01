@@ -18,13 +18,27 @@ cc.Class({
     
     push: function (rule) {
         var prio = rule.get_rule_prop('priority');
-        util.dict_pool.push(this.rule_pool, prio, rule);
-        rule.init_rule();
+        if(prio instanceof Array) {
+            for(var i = 0; i < prio.length; i ++) {
+                util.dict_pool.push(this.rule_pool, prio[i], rule);
+            }
+        } else {
+            util.dict_pool.push(this.rule_pool, prio, rule);
+        }
+        if(!rule.is_inited()) {
+            rule.init_rule();
+        }
     },
     
     remove: function(rule) {
         var prio = rule.get_rule_prop('priority');
-        util.dict_pool.remove(this.rule_pool, prio, rule);
+        if(prio instanceof Array) {
+            for(var i = 0; i < prio.length; i ++) {
+                util.dict_pool.remove(this.rule_pool, prio[i], rule);
+            }
+        } else {
+            util.dict_pool.remove(this.rule_pool, prio, rule);
+        }
     },
     
     invoke_rules_prio: function (fname, prio, args) {
@@ -56,10 +70,10 @@ cc.Class({
                 threshold_prio[1] += this.rule_pool.length + 1;
             }
             for(var i = threshold_prio[0]; i < threshold_prio[1]; i ++) {
-                this.invoke_rules_prio('update_rule', i, [dt]);
+                this.invoke_rules_prio('update_rule', i, [dt, i]);
             }
         } else {
-            this.invoke_rules_prio('update_rule', prio, [dt]);
+            this.invoke_rules_prio('update_rule', prio, [dt, prio]);
         }
     },
     
