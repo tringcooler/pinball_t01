@@ -1,5 +1,33 @@
 var util = require('util');
 
+/* main loop:
+can pause: {
+    event before update
+    comp start
+    comp update: {
+        ruler priority 0~99
+    }
+    scheduler update: {
+        system priority: {
+            action manager
+            animation manager
+            collider manager
+            physics manager
+        }
+        non system priority
+    }
+    comp lateupdate: {
+        ruler priority 100~
+    }
+    event after update
+}
+event before visit
+visit scene
+event after visit
+render
+event after draw
+*/
+
 cc.Class({
     extends: cc.Component,
 
@@ -58,22 +86,27 @@ cc.Class({
     },
     
     update_rules: function (dt, prio = null) {
-        if(prio === null) {
+        if(typeof prio == 'number') {
+            this.invoke_rules_prio('update_rule', prio, [dt, prio]);
+        } else {
+            var max_prio = this.rule_pool.length
+            if(prio === null) {
+                prio = [0, max_prio];
+            }
+            var _neg = function(v) {
+                if(v < 0) {
+                    return v + max_prio + 1;
+                } else {
+                    return v;
+                }
+            };
             var threshold_prio = [
-                Math.max(this._pause_prio[0], 0),
-                Math.min(this._pause_prio[1], this.rule_pool.length),
-                ];
-            if(threshold_prio[0] < 0) {
-                threshold_prio[0] += this.rule_pool.length + 1;
-            }
-            if(threshold_prio[1] < 0) {
-                threshold_prio[1] += this.rule_pool.length + 1;
-            }
+                Math.max(_neg(this._pause_prio[0]), _neg(prio[0])),
+                Math.min(_neg(this._pause_prio[1]), _neg(prio[1]))
+            ];
             for(var i = threshold_prio[0]; i < threshold_prio[1]; i ++) {
                 this.invoke_rules_prio('update_rule', i, [dt, i]);
             }
-        } else {
-            this.invoke_rules_prio('update_rule', prio, [dt, prio]);
         }
     },
     
@@ -131,6 +164,10 @@ cc.Class({
     update: function (dt) {
         //if(dt > 0.1) dt = 0.1; //!alert!
         console.log(dt);
-        this.update_rules(dt);
+        this.update_rules(dt, [0, 99]);
     },
+    
+    lateUpdate: function (dt) {
+        this.update_rules(dt, [100, -1]);
+    }
 });

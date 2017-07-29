@@ -22,7 +22,7 @@ cc.Class({
     },
     
     statics: {
-        rule_priority: [1, 15],
+        rule_priority: 101,
         rule_interacts: ['rigid'],
     },
     
@@ -263,16 +263,11 @@ cc.Class({
     
     update_rule: function (dt, prio) {
         this._super();
-        if(prio == 1) {
-            //console.log('update prio 1');
-            if(this.movable) {
-                if(dt > 0.1) {
-                    console.log('break here');
-                }
-                this.update_movable();
+        if(this.movable) {
+            if(dt > 0.1) {
+                console.log('break here');
             }
-        } else if(prio == 15) {
-            //console.log('update prio 15');
+            this.update_movable();
         }
     },
 
