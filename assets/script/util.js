@@ -295,10 +295,19 @@ var array_intersect = function (arr1, arr2) {
     return !r;
 };
 
+var pmod = function (v, m) {
+    var r = (v % m);
+    if(r < 0) {
+        r += m;
+    }
+    return r;
+};
+
 module.exports = {
     dict_pool: dict_pool,
     float_eq: float_eq,
     affine: affine,
     dichotomy: dichotomy,
     array_intersect: array_intersect,
+    pmod: pmod,
 };

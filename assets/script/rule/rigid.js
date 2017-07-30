@@ -194,13 +194,86 @@ cc.Class({
         }
     },
     
-    _points_points_intersect_line: function (src, dst) {
-        for ( i = 0, l = dst.length; i < l; ++i ) {
-            var d1 = dst[i];
-            var d2 = dst[(i+1)%l];
-            if ( cc.Intersection.linePolygon( d1, d2, src ) ) {
-                return [d1, d2, i];
+    _line_line_intersect_curve_length: function (s1, s2, d1, d2) {
+        var us_t = (d2.x - d1.x) * (s1.y - d1.y) - (d2.y - d1.y) * (s1.x - d1.x);
+        var ud_t = (s2.x - s1.x) * (s1.y - d1.y) - (s2.y - s1.y) * (s1.x - d1.x);
+        var u_d  = (d2.y - d1.y) * (s2.x - s1.x) - (d2.x - d1.x) * (s2.y - s1.y);
+        if(u_d !== 0) {
+            var us = us_t / u_d;
+            var ud = ud_t / u_d;
+            if( 0 <= us && us <= 1 && 0 <= ud && ud <= 1 ) {
+                var ls = cc.v2(s2).sub(s1).mag();
+                var ld = cc.v2(d2).sub(d1).mag();
+                return [us, ud, ls, ld];
             }
+        }
+    },
+    
+    _get_points_line: function (points, idx) {
+        var l = points.length;
+        return [points[util.pmod(idx, l)], points[util.pmod(idx + 1, l)]];
+    },
+    
+    _points_line_intersect_curve_length: function (src, d1, d2, src_rng = null) {
+        if(src_rng === null) {
+            src_rng = [0, src.length - 1];
+        }
+        var cl;
+        for (var si = src_rng[0]; si < src_rng[1] + 1; si ++) {
+            var s1, s2;
+            [s1, s2] = this._get_points_line(src, si);
+            cl = this._line_line_intersect_curve_length(s1, s2, d1, d2);
+            if(cl) break;
+        }
+        return [cl, si];
+    },
+    
+    // only for tangency, the minimum contact
+    _points_points_intersect_line: function (src, dst) {
+        var _is_break = false;
+        var first_cl, second_cl;
+        var di, dl, d1, d2, si, ndi, nsi;
+        for (di = 0, dl = dst.length; di < dl; di ++) {
+            [d1, d2] = this._get_points_line(dst, di);
+            [first_cl, si] = this._points_line_intersect_curve_length(src, d1, d2);
+            if(first_cl) break;
+        }
+        var dr;
+        if(first_cl && dl > 2 && di < dl - 1) {
+            var si_rng;
+            if(si === 0) {
+                si_rng = [si - 1, si + 1];
+            } else if(si === src.length - 1) {
+                si_rng = [si, si];
+            } else {
+                si_rng = [si, si + 1];
+            }
+            ndi = util.pmod(di + 1, dl);
+            [d1, d2] = this._get_points_line(dst, ndi);
+            [second_cl, nsi] = this._points_line_intersect_curve_length(
+                src, d1, d2, si_rng);
+            if(second_cl) {
+                dr = [first_cl, [si, di], second_cl, [nsi, ndi]];
+            } else if(di === 0) {
+                ndi = util.pmod(di - 1, dl);
+                [d1, d2] = this._get_points_line(dst, ndi);
+                [second_cl, nsi] = this._points_line_intersect_curve_length(
+                    src, d1, d2, si_rng);
+                if(second_cl) {
+                    dr = [second_cl, [nsi, ndi], first_cl, [si, di]];
+                }
+            }
+        }
+        if(dr) {
+            var l1 = (1 - dr[0][1]) * dr[0][3];
+            var l2 = dr[2][1] * dr[2][3];
+            if(l1 >= l2) {
+                di = dr[1][1];
+            } else {
+                di = dr[3][1];
+            }
+            [d1, d2] = this._get_points_line(dst, di);
+            return [d1, d2, di];
         }
     },
     
