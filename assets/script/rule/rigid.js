@@ -262,6 +262,9 @@ cc.Class({
                 if(second_cl) {
                     dr = [second_cl, [nsi, ndi], first_cl, [si, di]];
                 }
+            } else {
+                [d1, d2] = this._get_points_line(dst, di);
+                return [d1, d2, di];
             }
         } else if(first_cl) {
             return [d1, d2, di];
