@@ -263,6 +263,8 @@ cc.Class({
                     dr = [second_cl, [nsi, ndi], first_cl, [si, di]];
                 }
             }
+        } else if(first_cl) {
+            return [d1, d2, di];
         }
         if(dr) {
             var l1 = (1 - dr[0][1]) * dr[0][3];
@@ -292,6 +294,7 @@ cc.Class({
                     p1: tl[0],
                     p2: tl[1],
                 });
+                console.log('tangent', this.name, field.name, tl[0], tl[1])
             }
         });
         return contacts;
