@@ -240,14 +240,7 @@ cc.Class({
         }
         var dr;
         if(first_cl && dl > 2 && di < dl - 1) {
-            var si_rng;
-            if(si === 0) {
-                si_rng = [si - 1, si + 1];
-            } else if(si === src.length - 1) {
-                si_rng = [si, si];
-            } else {
-                si_rng = [si, si + 1];
-            }
+            var si_rng = [si - 1, si + 1];
             ndi = util.pmod(di + 1, dl);
             [d1, d2] = this._get_points_line(dst, ndi);
             [second_cl, nsi] = this._points_line_intersect_curve_length(
