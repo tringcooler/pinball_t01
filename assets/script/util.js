@@ -4,7 +4,43 @@ var assert = function (cond) {
     if(!cond) {
         throw 'assert error';
     }
-}
+};
+
+var array_set = {
+    
+    add: function (arr, elm) {
+        if(elm instanceof Array) {
+            for(var i = 0; i < elm.length; i ++) {
+                array_set.add(arr, elm[i]);
+            }
+        } else {
+            if(arr.indexOf(elm) == -1) {
+                arr.push(elm);
+            }
+        }
+    },
+    
+    remove: function (arr, elm) {
+        if(elm instanceof Array) {
+            var rslt = false;
+            for(var i = 0; i < elm.length; i ++) {
+                rslt |= array_set.remove(arr, elm[i]);
+            }
+            return rslt;
+        } else {
+            var ri = null;
+            if( (ri = arr.indexOf(elm)) != -1 ) {
+                var rr = arr.splice(ri, 1)[0];
+                if(rr != val) {
+                    throw 'RuntimeError: invalid array_set remove';
+                }
+                return true;
+            } else {
+                return false;
+            }
+        }
+    },
+};
 
 var dict_pool = {
     
@@ -41,6 +77,27 @@ var dict_pool = {
             return true;
         }
         return false;
+    },
+    
+    get_all: function (pool) {
+        var r = [];
+        for(var key in pool) {
+            array_set.add(r, pool[key]);
+        }
+        return r;
+    },
+    
+    get: function (pool, key = null) {
+        if(key === null) {
+            return dict_pool.get_all(pool);
+        } else {
+            return pool[key].slice();
+        }
+    },
+    
+    contains: function (pool, key, val) {
+        var r = dict_pool.get(pool, key);
+        return (r.indexOf(val) != -1);
     },
 
 };
@@ -304,6 +361,7 @@ var pmod = function (v, m) {
 };
 
 module.exports = {
+    array_set: array_set,
     dict_pool: dict_pool,
     float_eq: float_eq,
     affine: affine,

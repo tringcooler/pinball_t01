@@ -260,6 +260,53 @@ cc.Class({
         }
     },
     
+    in_interact: function (interact, field) {
+        var others;
+        if(!(interact in this.interact_pool)) {
+            throw 'unknown interact field';
+        }
+        var fields = this.interact_pool[interact].pool;
+        var en = this.interact_pool[interact].enable;
+        if(!en) return false;
+        return (fields.indexOf(field) != -1);
+    },
+    
+    in_interacts: function (field) {
+        for(var ia in this.interact_pool) {
+            if(this.in_interact(ia, field)) {
+                return true;
+            }
+        }
+        return false;
+    },
+    
+    _get_interact: function (interact) {
+        if(!(interact in this.interact_pool)) {
+            throw 'unknown interact field';
+        }
+        var fields = this.interact_pool[interact].pool;
+        var en = this.interact_pool[interact].enable;
+        if(!en) return [];
+        return fields.slice();
+    },
+    
+    get_interact: function (interact = null) {
+        if(interact === null) {
+            var arr_set = require('util').array_set;
+            var r = [];
+            for(var ia in this.interact_pool) {
+                var fields = this.interact_pool[ia].pool;
+                var en = this.interact_pool[ia].enable;
+                if(en) {
+                    arr_set.add(r, fields);
+                }
+            }
+            return r;
+        } else {
+            return this._get_interact(interact);
+        }
+    },
+    
     onCollisionEnter: function (other, self) {
         for(var interact in this.interact_pool) {
             var d_fields = other.node.getComponents(interact);

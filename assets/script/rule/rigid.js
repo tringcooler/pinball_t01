@@ -127,6 +127,13 @@ cc.Class({
         }
     },
     
+    _update_pre_collision: function () {
+        if(!this.get_rule_prop('rect_field')) {
+            util.array_set.add(
+                this.rev_factors.pre_collision, this.get_interact('rigid'));
+        }
+    },
+    
     // min un-collision
     _1_dichotomy_tree_rev_dt: function () {
         return [
@@ -175,6 +182,21 @@ cc.Class({
                     return false;
                 }
             });
+            if(chk !== false) {
+                for(var i = 0; i < this.rev_factors.pre_collision.length; i ++) {
+                    var other = this.rev_factors.pre_collision[i];
+                    if(this.in_interact('rigid', other)) continue;
+                    if(this.field_field(other, rev_trans)) {
+                        chk = false;
+                        break;
+                    }
+                }
+                if(i >= this.rev_factors.pre_collision.length) {
+                    this.rev_factors.pre_collision = [];
+                }
+            } else {
+                this.rev_factors.pre_collision = [];
+            }
             return (chk !== false);
         }).bind(this);
         return dichotomy(this._dichotomy_tree_rev_dt().tree, _chk_collision);
@@ -290,7 +312,7 @@ cc.Class({
                     p1: tl[0],
                     p2: tl[1],
                 });
-                console.log('tangent', this.name, field.name, tl[0], tl[1])
+                console.log('tangent', this.name, field.name, tl[0], tl[1]);
             }
         });
         return contacts;
@@ -315,6 +337,8 @@ cc.Class({
         //this.apply_loc_affine(rev_m_trans);
         this.apply_world_affine(rev_m_trans);
         this._update_pre_trans(rev_m_trans);
+        console.log('pc',this.name, this.rev_factors.pre_collision.length, this.rev_factors.pre_collision[0]?this.rev_factors.pre_collision[0].name:undefined, this.get_interact('rigid')[0].name);
+        this._update_pre_collision();
         console.log('cur', this.name, rev_dt, this.node.y, this.get_world().transform.ty);
         console.log('curx', this.node.x, this.get_world().transform.tx);
         //var _t = this.node.getComponent('inertia');
@@ -324,7 +348,9 @@ cc.Class({
     init_rule: function () {
         this._super();
         this.rev_factors = {
+            pre_collision: [],
             pre_trans: cc.affineTransformMakeIdentity(),
+            next_trans: cc.affineTransformMakeIdentity(),
             trans: cc.affineTransformMakeIdentity(),
             r1sr1: [0, 1, 1],
             r2: 0,
