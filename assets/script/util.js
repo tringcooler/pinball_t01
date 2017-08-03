@@ -170,6 +170,10 @@ var affine = {
         return cc.affineTransformMakeIdentity();
     },
     
+    invert: function (af) {
+        return cc.affineTransformInvert(af);
+    },
+    
     translate: function (tx, ty) {
         return cc.affineTransformMake(
             1, 0,
@@ -332,6 +336,69 @@ var affine = {
     }
 };
 
+var rev_tracer = (function() {
+    function rev_tracer() {}
+    
+    rev_tracer.prototype.calc = function (
+        cur_trans_or_obv_trans, pre_trans = null) {
+        this.calc_trans(cur_trans_or_obv_trans, pre_trans);
+        this.calc_factors();
+    };
+    
+    rev_tracer.prototype.calc_trans = function (
+        cur_trans_or_obv_trans, pre_trans = null) {
+        var trans;
+        if(pre_trans === null) {
+            trans = affine.invert(cur_trans_or_obv_trans);
+        } else {
+            trans = affine.dot(
+                pre_trans,
+                affine.invert(cur_trans_or_obv_trans));
+        }
+        this.trans = trans;
+    };
+    
+    rev_tracer.prototype.calc_factors = function () {
+        var rsrt = affine.affine2rsrt(this.trans);
+        this.r1sr1 = rsrt.slice(0, 3);
+        this.r2 = rsrt[0] + rsrt[3];
+        this.tx = rsrt[4];
+        this.ty = rsrt[5];
+    };
+    
+    rev_tracer.prototype.trace = function (dt, mask = 0xf) {
+        dt = Math.max(Math.min(dt, 1), 0);
+        var a = affine.id();
+        if(mask & 0x1) {
+            var rsr = this.r1sr1;
+            var r1 = affine.rotate(rsr[0]);
+            var sc = affine.scale(1 + (rsr[1] - 1) * dt, 1 + (rsr[2] - 1) * dt);
+            var r1i = affine.rotate(-rsr[0]);
+            a = affine.dot(affine.dot(r1i, affine.dot(sc, r1)), a);
+        }
+        if(mask & 0x2) {
+            a = affine.dot(affine.rotate(this.r2 * dt), a);
+        }
+        if(mask & 0xc) {
+            a = affine.dot(
+                    affine.translate(
+                        this.tx * dt, this.ty * dt),
+                    a);
+        } else if(mask & 0x4) {
+            a = affine.dot(
+                    affine.translate(this.tx * dt, 0),
+                    a);
+        } else if(mask & 0x8) {
+            a = affine.dot(
+                    affine.translate(0, this.ty * dt),
+                    a);
+        }
+        return a;
+    };
+    
+    return rev_tracer;
+})();
+
 var dichotomy = function(tree, cb) {
     if(tree instanceof Array) {
         var t = cb(tree[0]);
@@ -365,6 +432,7 @@ module.exports = {
     dict_pool: dict_pool,
     float_eq: float_eq,
     affine: affine,
+    rev_tracer: rev_tracer,
     dichotomy: dichotomy,
     array_intersect: array_intersect,
     pmod: pmod,

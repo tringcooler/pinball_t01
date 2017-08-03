@@ -26,42 +26,10 @@ cc.Class({
         rule_interacts: ['rigid'],
     },
     
-    _calc_rev_trans: function () {
-        // when recalc after apply affine, world's transform is not already updated
-        var cur_trans = this.get_world(this).transform;
-        if(!cur_trans) return;
-        var cur_trans_ = this.node.getNodeToWorldTransformAR();
-        if(!cc.affineTransformEqualToTransform(cur_trans, cur_trans_)) {
-            throw 'cur_trans ' + cur_trans + ' ' + cur_trans_;
-        }
-        //this.rev_factors.trans = cc.affineTransformConcat(
-        //    this.rev_factors.pre_trans,
-        //    cc.affineTransformInvert(cur_trans));
-        // PX = CRX R is local affine
-        //this.rev_factors.trans = util.affine.dot(
-        //    cc.affineTransformInvert(cur_trans),
-        //    this.rev_factors.pre_trans);
-        // PX = RCX R is world affine
-        this.rev_factors.trans = util.affine.dot(
-            this.rev_factors.pre_trans,
-            cc.affineTransformInvert(cur_trans));
-        console.log('PCR',
-            this.rev_factors.pre_trans.tx,
-            this.rev_factors.pre_trans.ty,
-            cur_trans.tx,
-            cur_trans.ty,
-            this.rev_factors.trans.tx,
-            this.rev_factors.trans.ty);
-        this.rev_factors.pre_trans = cc.affineTransformClone(cur_trans);
-    },
-    
     _calc_rev_factors: function () {
-        this._calc_rev_trans();
-        var rsrt = util.affine.affine2rsrt(this.rev_factors.trans);
-        this.rev_factors.r1sr1 = rsrt.slice(0, 3);
-        this.rev_factors.r2 = rsrt[0] + rsrt[3];
-        this.rev_factors.tx = rsrt[4];
-        this.rev_factors.ty = rsrt[5];
+        var cur_trans = this.get_world(this).transform;
+        this.rev_factors.tracer.calc(cur_trans, this.rev_factors.pre_trans);
+        this.rev_factors.pre_trans = cc.affineTransformClone(cur_trans);
     },
     
     _calc_rev_factors_rect: function () {
@@ -84,36 +52,7 @@ cc.Class({
     },
     
     rev_trans: function (dt, mask = 0xf) {
-        dt = Math.max(Math.min(dt, 1), 0);
-        var a = cc.affineTransformMakeIdentity();
-        if(this.get_rule_prop('rect_field')) {
-            mask &= 0xc0;
-        }
-        if(mask & 0x1) {
-            var rsr = this.rev_factors.r1sr1;
-            var r1 = util.affine.rotate(rsr[0]);
-            var sc = util.affine.scale(1 + (rsr[1] - 1) * dt, 1 + (rsr[2] - 1) * dt);
-            var r1i = util.affine.rotate(-rsr[0]);
-            a = util.affine.dot(util.affine.dot(r1i, util.affine.dot(sc, r1)), a);
-        }
-        if(mask & 0x2) {
-            a = util.affine.dot(util.affine.rotate(this.rev_factors.r2 * dt), a);
-        }
-        if(mask & 0xc) {
-            a = util.affine.dot(
-                    util.affine.translate(
-                        this.rev_factors.tx * dt, this.rev_factors.ty * dt),
-                    a);
-        } else if(mask & 0x4) {
-            a = util.affine.dot(
-                    util.affine.translate(this.rev_factors.tx * dt, 0),
-                    a);
-        } else if(mask & 0x8) {
-            a = util.affine.dot(
-                    util.affine.translate(0, this.rev_factors.ty * dt),
-                    a);
-        }
-        return a;
+        return this.rev_factors.tracer.trace(dt, mask);
     },
     
     _update_pre_trans: function (af) {
@@ -318,6 +257,12 @@ cc.Class({
         return contacts;
     },
     
+    _update_slide_trans: function (contacts) {
+        if(contacts.length != 1) return;
+        var contact = contacts[0];
+        this.rev_factors.next_trans;
+    },
+    
     update_movable: function () {
         //this.update_world(this);
         var _t1 = this.rev_factors.pre_trans.ty;
@@ -351,11 +296,8 @@ cc.Class({
             pre_collision: [],
             pre_trans: cc.affineTransformMakeIdentity(),
             next_trans: cc.affineTransformMakeIdentity(),
-            trans: cc.affineTransformMakeIdentity(),
-            r1sr1: [0, 1, 1],
-            r2: 0,
-            tx: 0,
-            ty: 0,
+            tracer: new util.rev_tracer(),
+            next_tracer: new util.rev_tracer(),
         };
     },
     
