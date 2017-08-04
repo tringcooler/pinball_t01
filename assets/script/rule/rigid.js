@@ -54,6 +54,14 @@ cc.Class({
         }
     },
     
+    _update_slide_trans: function (contacts) {
+        if(contacts.length != 1) return;
+        var contact = contacts[0];
+        //TODO
+        //this.rev_factors.next_trans = ??;
+        this.rev_factors.next_tracer.calc(this.rev_factors.next_trans);
+    },
+    
     // min un-collision
     _1_dichotomy_tree_rev_dt: function () {
         return [
@@ -238,12 +246,6 @@ cc.Class({
         return contacts;
     },
     
-    _update_slide_trans: function (contacts) {
-        if(contacts.length != 1) return;
-        var contact = contacts[0];
-        this.rev_factors.next_trans;
-    },
-    
     update_movable: function () {
         //this.update_world(this);
         var _t1 = this.rev_factors.pre_trans.ty;
@@ -284,7 +286,7 @@ cc.Class({
             pre_trans: cc.affineTransformMakeIdentity(),
             next_trans: cc.affineTransformMakeIdentity(),
             tracer: new util.rev_tracer(trc_typ),
-            next_tracer: new util.rev_tracer(),
+            next_tracer: new util.rev_tracer('slide'),
         };
     },
     
