@@ -26,29 +26,10 @@ cc.Class({
         rule_interacts: ['rigid'],
     },
     
-    _calc_rev_factors: function () {
+    calc_rev_factors: function () {
         var cur_trans = this.get_world(this).transform;
         this.rev_factors.tracer.calc(cur_trans, this.rev_factors.pre_trans);
         this.rev_factors.pre_trans = cc.affineTransformClone(cur_trans);
-    },
-    
-    _calc_rev_factors_rect: function () {
-        var self_word = this.get_world(this);
-        var rev_tx = self_word.preAabb.x - self_word.aabb.x;
-        var rev_ty = self_word.preAabb.y - self_word.aabb.y;
-        this.rev_factors.trans = cc.affineTransformMake(
-            1, 0, 0, 1,
-            rev_tx, rev_ty);
-        this.rev_factors.tx = rev_tx;
-        this.rev_factors.ty = rev_ty;
-    },
-    
-    calc_rev_factors: function () {
-        if(this.get_rule_prop('rect_field')) {
-            return this._calc_rev_factors_rect();
-        } else {
-            return this._calc_rev_factors();
-        }
     },
     
     rev_trans: function (dt, mask = 0xf) {
@@ -292,11 +273,17 @@ cc.Class({
     
     init_rule: function () {
         this._super();
+        var trc_typ;
+        if(this.get_rule_prop('rect_field')) {
+            trc_typ = 'slide';
+        } else {
+            trc_typ = 'standard';
+        }
         this.rev_factors = {
             pre_collision: [],
             pre_trans: cc.affineTransformMakeIdentity(),
             next_trans: cc.affineTransformMakeIdentity(),
-            tracer: new util.rev_tracer(),
+            tracer: new util.rev_tracer(trc_typ),
             next_tracer: new util.rev_tracer(),
         };
     },

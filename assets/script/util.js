@@ -337,12 +337,18 @@ var affine = {
 };
 
 var rev_tracer = (function() {
-    function rev_tracer() {}
+    function rev_tracer(type = 'standard') {
+        this.type = type;
+    }
     
     rev_tracer.prototype.calc = function (
         cur_trans_or_obv_trans, pre_trans = null) {
-        this.calc_trans(cur_trans_or_obv_trans, pre_trans);
-        this.calc_factors();
+        if(this.type == 'slide') {
+            this.calc_slide(cur_trans_or_obv_trans, pre_trans);
+        } else {
+            this.calc_trans(cur_trans_or_obv_trans, pre_trans);
+            this.calc_factors();
+        }
     };
     
     rev_tracer.prototype.calc_trans = function (
@@ -366,9 +372,22 @@ var rev_tracer = (function() {
         this.ty = rsrt[5];
     };
     
+    rev_tracer.prototype.calc_slide = function (
+        cur_trans_or_obv_trans, pre_trans = null) {
+        if(pre_trans !== null) {
+            this.tx = pre_trans.tx;
+            this.ty = pre_trans.ty;
+        }
+        this.tx -= cur_trans_or_obv_trans.tx;
+        this.ty -= cur_trans_or_obv_trans.ty;
+    };
+    
     rev_tracer.prototype.trace = function (dt, mask = 0xf) {
         dt = Math.max(Math.min(dt, 1), 0);
         var a = affine.id();
+        if(this.type == 'slide') {
+            mask &= 0xc;
+        }
         if(mask & 0x1) {
             var rsr = this.r1sr1;
             var r1 = affine.rotate(rsr[0]);
