@@ -387,7 +387,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "New Node",
+    "_name": "plat1",
     "_objFlags": 0,
     "_parent": {
       "__id__": 2
@@ -475,7 +475,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "New Node",
+    "_name": "plat2",
     "_objFlags": 0,
     "_parent": {
       "__id__": 2
@@ -563,7 +563,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "New Node",
+    "_name": "plat3",
     "_objFlags": 0,
     "_parent": {
       "__id__": 2
@@ -651,7 +651,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "New Node",
+    "_name": "plat4",
     "_objFlags": 0,
     "_parent": {
       "__id__": 2

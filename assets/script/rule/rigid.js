@@ -81,6 +81,7 @@ cc.Class({
         }
         this.rev_factors.next_trans = slide_trans;
         this.rev_factors.next_tracer.calc(this.rev_factors.next_trans);
+        this._should_slide = true;
     },
     
     // min un-collision
@@ -278,7 +279,7 @@ cc.Class({
         console.log('slfps', this.name, this.get_world().points[0]);
         var rev_dt = this._get_collision_moment();
         var contacts = this._get_collision_contacts(rev_dt);
-        console.log(rev_dt, contacts[0].field.name, contacts[0].p1, contacts[0].p2);
+        console.log('cnct', rev_dt, this.name, contacts.length, contacts[0].field.name, contacts[0].p1, contacts[0].p2);
         //rev_dt = 1; //!alert!
         var rev_m_trans = this.rev_trans(rev_dt);
         //rev_m_trans = cc.affineTransformMake(1,0,0,1,0,100);
@@ -297,12 +298,13 @@ cc.Class({
     },
     
     update_next_movable: function () {
-        if(this.rev_factors.next_tracer.dirty) {
+        if(this.rev_factors.next_tracer.dirty && this._should_slide) {
             var slide_trans = this.rev_factors.next_trans;
             //var slide_trans = this.rev_factors.next_tracer.trans;
             //var slide_trans = util.affine.translate(3,3);
             this.apply_world_affine(slide_trans);
             this._update_pre_trans(slide_trans);
+            this._should_slide = false;
         }
     },
     
@@ -321,6 +323,7 @@ cc.Class({
             tracer: new util.rev_tracer(trc_typ),
             next_tracer: new util.rev_tracer('slide'),
         };
+        this._should_slide = false;
     },
     
     update_rule: function (dt, prio) {
