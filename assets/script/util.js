@@ -107,7 +107,7 @@ var float_eq = function (a, b, max_times = 1e9) {
     var diff = Math.abs(a - b);
     if(a == b) {
         return true;
-    } else if (a === 0 || b === 0 || diff <= Number.EPSILON * max_times) {
+    } else if ((a === 0 || b === 0) && diff <= Number.EPSILON * max_times) {
         return true;
     } else {
         return  diff / base <= Number.EPSILON * max_times;
@@ -310,6 +310,33 @@ var affine = {
         return a;
     },
     
+    translate_projection: function () {
+        var args = arguments;
+        var argi = 0;
+        var sx, sy, dx, dy;
+        var src = args[argi++];
+        if(typeof src == 'object') {
+            sx = src.tx;
+            sy = src.ty;
+        } else {
+            sx = src;
+            sy = args[argi++];
+        }
+        var dst = args[argi++];
+        if(typeof dst == 'object') {
+            dx = dst.tx;
+            dy = dst.ty;
+        } else {
+            dx = dst;
+            dy = args[argi++];
+        }
+        var sv = cc.v2(sx, sy);
+        var dv = cc.v2(dx, dy);
+        var m = dv.dot(sv) / dv.dot(dv);
+        var rv = dv.mul(m);
+        return affine.translate(rv.x, rv.y);
+    },
+    
     _test_convert: function () {
         var _c = function (cb, cbi, a, b, c, d) {
             var A = cbi.apply(this, cb(a, b, c, d));
@@ -345,10 +372,13 @@ var rev_tracer = (function() {
         cur_trans_or_obv_trans, pre_trans = null) {
         if(this.type == 'slide') {
             this.calc_slide(cur_trans_or_obv_trans, pre_trans);
-        } else {
+        } else if(this.type == 'standard') {
             this.calc_trans(cur_trans_or_obv_trans, pre_trans);
             this.calc_factors();
+        } else {
+            throw 'unknown rev_tracer type ' + this.type;
         }
+        this.dirty = this._dirty();
     };
     
     rev_tracer.prototype.calc_trans = function (
@@ -377,9 +407,32 @@ var rev_tracer = (function() {
         if(pre_trans !== null) {
             this.tx = pre_trans.tx;
             this.ty = pre_trans.ty;
+        } else {
+            this.tx = this.ty = 0;
         }
         this.tx -= cur_trans_or_obv_trans.tx;
         this.ty -= cur_trans_or_obv_trans.ty;
+        this.trans = this.slide_rev_trans();
+    };
+    
+    rev_tracer.prototype.slide_rev_trans = function () {
+        return affine.translate(this.tx, this.ty);
+    };
+    
+    rev_tracer.prototype.slide_obv_trans = function () {
+        return affine.translate(-this.tx, -this.ty);
+    };
+    
+    rev_tracer.prototype._dirty = function () {
+        var dirty = false;
+        dirty = (dirty || !float_eq(this.tx, 0));
+        dirty = (dirty || !float_eq(this.ty, 0));
+        if(this.type == 'standard') {
+            dirty = (dirty || !float_eq(this.r1sr1[1], 1));
+            dirty = (dirty || !float_eq(this.r1sr1[2], 1));
+            dirty = (dirty || !float_eq(this.r2, 0));
+        }
+        return dirty;
     };
     
     rev_tracer.prototype.trace = function (dt, mask = 0xf) {

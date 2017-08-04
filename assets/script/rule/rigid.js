@@ -19,10 +19,11 @@ cc.Class({
         
         rect_field: false,
         movable: true,
+        slidable: true,
     },
     
     statics: {
-        rule_priority: 101,
+        rule_priority: [1, 101],
         rule_interacts: ['rigid'],
     },
     
@@ -33,7 +34,20 @@ cc.Class({
     },
     
     rev_trans: function (dt, mask = 0xf) {
-        return this.rev_factors.tracer.trace(dt, mask);
+        var threshold = 0.5;
+        if(this.rev_factors.next_tracer.dirty) {
+            if(dt <= threshold) {
+                dt = dt / threshold;
+                return this.rev_factors.tracer.trace(dt, mask);
+            } else {
+                dt = (dt - threshold) / (1 - threshold);
+                var trans = this.rev_factors.tracer.trans;
+                var slide_trans = this.rev_factors.tracer.trace(dt, mask);
+                return util.affine.dot(slide_trans, trans);
+            }
+        } else {
+            return this.rev_factors.tracer.trace(dt, mask);
+        }
     },
     
     _update_pre_trans: function (af) {
@@ -55,10 +69,17 @@ cc.Class({
     },
     
     _update_slide_trans: function (contacts) {
-        if(contacts.length != 1) return;
-        var contact = contacts[0];
-        //TODO
-        //this.rev_factors.next_trans = ??;
+        var slide_trans = util.affine.id();
+        if(contacts.length == 1 && this.get_rule_prop('slidable')) {
+            var contact = contacts[0];
+            if(contact.field.get_rule_prop('slidable')) {
+                var track = this.rev_factors.tracer.slide_obv_trans();
+                var tangent = contact.p2.sub(contact.p1);
+                slide_trans = util.affine.translate_projection(
+                    track, tangent.x, tangent.y);
+            }
+        }
+        this.rev_factors.next_trans = slide_trans;
         this.rev_factors.next_tracer.calc(this.rev_factors.next_trans);
     },
     
@@ -257,7 +278,7 @@ cc.Class({
         console.log('slfps', this.name, this.get_world().points[0]);
         var rev_dt = this._get_collision_moment();
         var contacts = this._get_collision_contacts(rev_dt);
-        //console.log(rev_dt, contacts[0].field.name, contacts[0].p1, contacts[0].p2);
+        console.log(rev_dt, contacts[0].field.name, contacts[0].p1, contacts[0].p2);
         //rev_dt = 1; //!alert!
         var rev_m_trans = this.rev_trans(rev_dt);
         //rev_m_trans = cc.affineTransformMake(1,0,0,1,0,100);
@@ -269,8 +290,20 @@ cc.Class({
         this._update_pre_collision();
         console.log('cur', this.name, rev_dt, this.node.y, this.get_world().transform.ty);
         console.log('curx', this.node.x, this.get_world().transform.tx);
+        this._update_slide_trans(contacts);
+        console.log('slide', this.rev_factors.next_trans.tx, this.rev_factors.next_trans.ty, this.rev_factors.next_tracer.trans.tx, this.rev_factors.next_tracer.trans.ty);
         //var _t = this.node.getComponent('inertia');
         //_t.speed = cc.Vec2.ZERO;
+    },
+    
+    update_next_movable: function () {
+        if(this.rev_factors.next_tracer.dirty) {
+            var slide_trans = this.rev_factors.next_trans;
+            //var slide_trans = this.rev_factors.next_tracer.trans;
+            //var slide_trans = util.affine.translate(3,3);
+            this.apply_world_affine(slide_trans);
+            this._update_pre_trans(slide_trans);
+        }
     },
     
     init_rule: function () {
@@ -293,10 +326,14 @@ cc.Class({
     update_rule: function (dt, prio) {
         this._super();
         if(this.movable) {
-            if(dt > 0.1) {
-                console.log('break here');
+            if(prio == 101) {
+                if(dt > 0.1) {
+                    console.log('break here');
+                }
+                this.update_movable();
+            } else if(prio == 1) {
+                this.update_next_movable();
             }
-            this.update_movable();
         }
     },
 
