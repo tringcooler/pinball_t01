@@ -269,6 +269,21 @@ cc.Class({
                 console.log('tangent', this.name, field.name, tl[0], tl[1]);
             }
         });
+        for(var i = 0; i < this.rev_factors.pre_collision.length; i ++) {
+            var field = this.rev_factors.pre_collision[i];
+            if(this.in_interact('rigid', field)) continue;
+            var other_ps = field.get_world(field).points;
+            var tl = this._points_points_intersect_line(coll_ps, other_ps);
+            if(tl) {
+                contacts.push({
+                    field: field,
+                    idxline: tl[2],
+                    p1: tl[0],
+                    p2: tl[1],
+                });
+                console.log('tangent_p', this.name, field.name, tl[0], tl[1]);
+            }
+        }
         return contacts;
     },
     
