@@ -310,6 +310,18 @@ var affine = {
         return a;
     },
     
+    translate_invert: function (tx, ty) {
+        var a;
+        if(typeof tx == 'object') {
+            a = cc.affineTransformClone(tx);
+        } else {
+            a = affine.translate(tx, ty);
+        }
+        a.tx = -a.tx;
+        a.ty = -a.ty;
+        return a;
+    },
+    
     translate_projection: function () {
         var args = arguments;
         var argi = 0;

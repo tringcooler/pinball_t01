@@ -68,12 +68,13 @@ cc.Class({
         }
     },
     
-    _update_slide_trans: function (contacts) {
+    _update_slide_trans: function (contacts, rev_trans) {
         var slide_trans = util.affine.id();
         if(contacts.length == 1 && this.get_rule_prop('slidable')) {
             var contact = contacts[0];
             if(contact.field.get_rule_prop('slidable')) {
-                var track = this.rev_factors.tracer.slide_obv_trans();
+                //var track = this.rev_factors.tracer.slide_obv_trans();
+                var track = util.affine.translate_invert(rev_trans);
                 var tangent = contact.p2.sub(contact.p1);
                 slide_trans = util.affine.translate_projection(
                     track, tangent.x, tangent.y);
@@ -291,7 +292,7 @@ cc.Class({
         this._update_pre_collision();
         console.log('cur', this.name, rev_dt, this.node.y, this.get_world().transform.ty);
         console.log('curx', this.node.x, this.get_world().transform.tx);
-        this._update_slide_trans(contacts);
+        this._update_slide_trans(contacts, rev_m_trans);
         console.log('slide', this.rev_factors.next_trans.tx, this.rev_factors.next_trans.ty, this.rev_factors.next_tracer.trans.tx, this.rev_factors.next_tracer.trans.ty);
         //var _t = this.node.getComponent('inertia');
         //_t.speed = cc.Vec2.ZERO;
