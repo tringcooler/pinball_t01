@@ -126,6 +126,7 @@ cc.Class({
     
     _get_collision_moment: function () {
         var dichotomy = util.dichotomy;
+        var _pre_collision_valid = false;
         var _chk_collision = (function (dt) {
             var rev_trans = this.rev_trans(dt);
             var chk = this.foreach_interact('rigid', function (field) {
@@ -139,21 +140,15 @@ cc.Class({
                     if(this.in_interact('rigid', other)) continue;
                     if(this.field_field(other, rev_trans)) {
                         chk = false;
-                        this._pre_collision_valid = true;
+                        _pre_collision_valid = true;
                         break;
                     }
                 }
-                if(i >= this.rev_factors.pre_collision.length) {
-                    this._pre_collision_valid = false;
-                }
-            } else {
-                this._pre_collision_valid = false;
             }
             return (chk !== false);
         }).bind(this);
-        this._pre_collision_valid = false;
         var r = dichotomy(this._dichotomy_tree_rev_dt().tree, _chk_collision);
-        if(!this._pre_collision_valid) {
+        if(!_pre_collision_valid) {
             this.rev_factors.pre_collision = [];
         }
         return r;
