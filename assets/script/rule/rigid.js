@@ -139,18 +139,24 @@ cc.Class({
                     if(this.in_interact('rigid', other)) continue;
                     if(this.field_field(other, rev_trans)) {
                         chk = false;
+                        this._pre_collision_valid = true;
                         break;
                     }
                 }
                 if(i >= this.rev_factors.pre_collision.length) {
-                    this.rev_factors.pre_collision = [];
+                    this._pre_collision_valid = false;
                 }
             } else {
-                this.rev_factors.pre_collision = [];
+                this._pre_collision_valid = false;
             }
             return (chk !== false);
         }).bind(this);
-        return dichotomy(this._dichotomy_tree_rev_dt().tree, _chk_collision);
+        this._pre_collision_valid = false;
+        var r = dichotomy(this._dichotomy_tree_rev_dt().tree, _chk_collision);
+        if(!this._pre_collision_valid) {
+            this.rev_factors.pre_collision = [];
+        }
+        return r;
     },
     
     _get_collision_moment_rect: function () {
@@ -203,7 +209,6 @@ cc.Class({
     
     // only for tangency, the minimum contact
     _points_points_intersect_line: function (src, dst) {
-        var _is_break = false;
         var first_cl, second_cl;
         var di, dl, d1, d2, si, ndi, nsi;
         for (di = 0, dl = dst.length; di < dl; di ++) {
@@ -227,6 +232,9 @@ cc.Class({
                     src, d1, d2, si_rng);
                 if(second_cl) {
                     dr = [second_cl, [nsi, ndi], first_cl, [si, di]];
+                } else {
+                    [d1, d2] = this._get_points_line(dst, di);
+                    return [d1, d2, di];
                 }
             } else {
                 [d1, d2] = this._get_points_line(dst, di);
