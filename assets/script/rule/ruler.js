@@ -73,7 +73,7 @@ cc.Class({
         if(this.rule_pool[prio] instanceof Array) {
             var rules = this.rule_pool[prio];
             for(var i = 0; i < rules.length; i ++) {
-                var rule = rules[i]
+                var rule = rules[i];
                 if(rule.has_tags(this._pause_tags)) {
                     continue;
                 }
@@ -89,7 +89,7 @@ cc.Class({
         if(typeof prio == 'number') {
             this.invoke_rules_prio('update_rule', prio, [dt, prio]);
         } else {
-            var max_prio = this.rule_pool.length
+            var max_prio = this.rule_pool.length;
             if(prio === null) {
                 prio = [0, max_prio];
             }
@@ -163,11 +163,13 @@ cc.Class({
     // called every frame, uncomment this function to activate update callback
     update: function (dt) {
         //if(dt > 0.1) dt = 0.1; //!alert!
+        //dt = 0.02; //!alert!
         console.log(dt);
         this.update_rules(dt, [0, 99]);
     },
     
     lateUpdate: function (dt) {
+        //dt = 0.02; //!alert!
         this.update_rules(dt, [100, -1]);
     }
 });

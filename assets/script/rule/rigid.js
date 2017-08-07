@@ -42,11 +42,24 @@ cc.Class({
             } else {
                 dt = (dt - threshold) / (1 - threshold);
                 var trans = this.rev_factors.tracer.trans;
-                var slide_trans = this.rev_factors.tracer.trace(dt, mask);
+                var slide_trans = this.rev_factors.next_tracer.trace(dt, mask);
+                console.log('rev_slide', dt, trans.tx, trans.ty, slide_trans.tx, slide_trans.ty);
                 return util.affine.dot(slide_trans, trans);
             }
         } else {
             return this.rev_factors.tracer.trace(dt, mask);
+        }
+    },
+    
+    prev_coll_rev_trans: function (dt, dt_prec) {
+        var threshold = 0.5;
+        if( this.rev_factors.next_tracer.dirty && dt > threshold) {
+            var cur_trans = this.rev_trans(dt);
+            var obv_dt = Math.min(dt_prec, threshold);
+            var obv_trans = util.affine.invert(this.rev_trans(obv_dt));
+            return util.affine.dot(obv_trans, cur_trans);
+        } else {
+            return this.rev_trans(dt - dt_prec);
         }
     },
     
@@ -63,6 +76,8 @@ cc.Class({
     
     _update_pre_collision: function () {
         if(!this.get_rule_prop('rect_field')) {
+            this.rev_factors.pre_collision = this.rev_factors.pre_pre_collision;
+            this.rev_factors.pre_pre_collision = [];
             util.array_set.add(
                 this.rev_factors.pre_collision, this.get_interact('rigid'));
         }
@@ -82,7 +97,6 @@ cc.Class({
         }
         this.rev_factors.next_trans = slide_trans;
         this.rev_factors.next_tracer.calc(this.rev_factors.next_trans);
-        this._should_slide = true;
     },
     
     // min un-collision
@@ -126,7 +140,6 @@ cc.Class({
     
     _get_collision_moment: function () {
         var dichotomy = util.dichotomy;
-        var _pre_collision_valid = false;
         var _chk_collision = (function (dt) {
             var rev_trans = this.rev_trans(dt);
             var chk = this.foreach_interact('rigid', function (field) {
@@ -140,7 +153,6 @@ cc.Class({
                     if(this.in_interact('rigid', other)) continue;
                     if(this.field_field(other, rev_trans)) {
                         chk = false;
-                        _pre_collision_valid = true;
                         break;
                     }
                 }
@@ -148,9 +160,6 @@ cc.Class({
             return (chk !== false);
         }).bind(this);
         var r = dichotomy(this._dichotomy_tree_rev_dt().tree, _chk_collision);
-        if(!_pre_collision_valid) {
-            this.rev_factors.pre_collision = [];
-        }
         return r;
     },
     
@@ -252,8 +261,8 @@ cc.Class({
     },
     
     _get_collision_contacts: function (rev_dt) {
-        var coll_ta = this.rev_trans(
-            rev_dt - this._dichotomy_tree_rev_dt().precision);
+        var coll_ta = this.prev_coll_rev_trans(
+            rev_dt, this._dichotomy_tree_rev_dt().precision);
         var coll_ps = this.points_apply_affine_transform(coll_ta);
         var contacts = [];
         this.foreach_interact('rigid', function (field) {
@@ -282,6 +291,8 @@ cc.Class({
                     p2: tl[1],
                 });
                 console.log('tangent_p', this.name, field.name, tl[0], tl[1]);
+                util.array_set.add(
+                    this.rev_factors.pre_pre_collision, field);
             }
         }
         return contacts;
@@ -292,16 +303,19 @@ cc.Class({
         var _t1 = this.rev_factors.pre_trans.ty;
         this.calc_rev_factors();
         console.log('pre', this.name, _t1, this.rev_factors.pre_trans.ty);
+        console.log('curW', this.get_world().points[1], this.rev_factors.tracer.trans.tx, this.rev_factors.tracer.trans.ty);
         if(!this.has_interact('rigid')) {
+            this.rev_factors.next_tracer.clean();
             return;
         }
         console.log('slfps', this.name, this.get_world().points[0]);
         var rev_dt = this._get_collision_moment();
         var contacts = this._get_collision_contacts(rev_dt);
-        console.log('cnct', rev_dt, this.name, contacts.length, contacts[0].field.name, contacts[0].p1, contacts[0].p2);
+        console.log('cnct', this.name, contacts.length, contacts[0].field.name, contacts[0].p1, contacts[0].p2);
         //rev_dt = 1; //!alert!
         var rev_m_trans = this.rev_trans(rev_dt);
         //rev_m_trans = cc.affineTransformMake(1,0,0,1,0,100);
+        console.log('revm', rev_dt, rev_m_trans.tx, rev_m_trans.ty);
         console.log('prex', this.node.x, this.rev_factors.pre_trans.tx);
         //this.apply_loc_affine(rev_m_trans);
         this.apply_world_affine(rev_m_trans);
@@ -317,13 +331,12 @@ cc.Class({
     },
     
     update_next_movable: function () {
-        if(this.rev_factors.next_tracer.dirty && this._should_slide) {
+        if(this.rev_factors.next_tracer.dirty) {
             var slide_trans = this.rev_factors.next_trans;
             //var slide_trans = this.rev_factors.next_tracer.trans;
             //var slide_trans = util.affine.translate(3,3);
             this.apply_world_affine(slide_trans);
             this._update_pre_trans(slide_trans);
-            this._should_slide = false;
         }
     },
     
@@ -337,12 +350,12 @@ cc.Class({
         }
         this.rev_factors = {
             pre_collision: [],
+            pre_pre_collision: [],
             pre_trans: cc.affineTransformMakeIdentity(),
             next_trans: cc.affineTransformMakeIdentity(),
             tracer: new util.rev_tracer(trc_typ),
             next_tracer: new util.rev_tracer('slide'),
         };
-        this._should_slide = false;
     },
     
     update_rule: function (dt, prio) {

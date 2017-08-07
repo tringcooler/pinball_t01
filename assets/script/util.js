@@ -447,6 +447,10 @@ var rev_tracer = (function() {
         return dirty;
     };
     
+    rev_tracer.prototype.clean = function () {
+        this.dirty = false;
+    };
+    
     rev_tracer.prototype.trace = function (dt, mask = 0xf) {
         dt = Math.max(Math.min(dt, 1), 0);
         var a = affine.id();

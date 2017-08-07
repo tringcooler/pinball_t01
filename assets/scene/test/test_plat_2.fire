@@ -288,7 +288,8 @@
     "_enabled": true,
     "bypass": false,
     "rect_field": false,
-    "movable": false
+    "movable": false,
+    "slidable": true
   },
   {
     "__type__": "cc.Node",
@@ -375,7 +376,8 @@
     "_enabled": true,
     "bypass": false,
     "rect_field": false,
-    "movable": false
+    "movable": false,
+    "slidable": true
   },
   {
     "__type__": "cc.Node",
@@ -518,7 +520,8 @@
     "_enabled": true,
     "bypass": false,
     "rect_field": false,
-    "movable": true
+    "movable": true,
+    "slidable": false
   },
   {
     "__type__": "883ab785o5Hyb2eGC69Q5y/",
