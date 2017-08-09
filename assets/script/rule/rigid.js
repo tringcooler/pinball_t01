@@ -385,7 +385,7 @@ cc.Class({
         console.log('slfps', this.name, this.get_world().points[0]);
         var rev_dt = this._get_collision_moment();
         this.contacts = this._get_collision_contacts(rev_dt);
-        console.log('cnct', this.name, this.contacts.length, this.contacts[0].field.name, this.contacts[0].p1, this.contacts[0].p2);
+        console.log('cnct', this.name, this.contacts.length, this.contacts[0]?[this.contacts[0].field.name, this.contacts[0].p1, this.contacts[0].p2]:undefined);
         //rev_dt = 1; //!alert!
         var rev_m_trans = this.rev_trans(rev_dt);
         //rev_m_trans = cc.affineTransformMake(1,0,0,1,0,100);
