@@ -85,19 +85,36 @@ cc.Class({
     
     _update_slide_trans: function (rev_trans) {
         var slide_trans = util.affine.id();
-        if(this.get_rule_prop('slidable')) {
-            var contact;
+        if(this.contacts.length > 0 && this.get_rule_prop('slidable')) {
+            var i;
+            var vec_grp = [];
             var track = util.affine.translate_invert(rev_trans);
-            for(var i = 0; i < this.contacts.length; i ++) {
-                contact = this.contacts[i];
+            var anchorage_vec = cc.v2(rev_trans.tx, rev_trans.ty);
+            var track_vec = cc.v2(-rev_trans.tx, -rev_trans.ty);
+            for(i = 0; i < this.contacts.length; i ++) {
+                var contact = this.contacts[i];
                 if(!contact.field.get_rule_prop('slidable')) {
                     break;
                 }
+                var tangent = contact.p2.sub(contact.p1);
+                var tangent_inv = cc.Vec2.ZERO.sub(tangent);
+                vec_grp.push(tangent);
+                vec_grp.push(tangent_inv);
             }
             if(i >= this.contacts.length) {
-                var tangent = contact.p2.sub(contact.p1);
-                slide_trans = util.affine.translate_projection(
-                    track, tangent.x, tangent.y);
+                var prj_vec;
+                if(this.contacts.length > 1) {
+                    var rblk = this.get_vector_direct(anchorage_vec, vec_grp);
+                    if( (prj_vec = util.vec.projection(track_vec, rblk[0][0])) > 0
+                        || (prj_vec = util.vec.projection(track_vec, rblk[1][0])) > 0 ) {
+                        slide_trans = util.affine.translate(prj_vec.x, prj_vec.y);
+                    }
+                } else {
+                    prj_vec = util.vec.projection(track_vec, vec_grp[0]);
+                    slide_trans = util.affine.translate(prj_vec.x, prj_vec.y);
+                    //slide_trans = util.affine.translate_projection(
+                    //    track, vec_grp[0].x, vec_grp[0].y);
+                }
             }
         }
         this.rev_factors.next_trans = slide_trans;
@@ -317,48 +334,41 @@ cc.Class({
         return contacts;
     },
     
-    get_vector_direct: function (vec, field = null, dir_grp = null, rel = false) {
+    get_vector_direct: function (vec, dir_grp = null, rel = false, field = null) {
         if(field === null) {
             field = this;
         }
         if(dir_grp === null) {
-            dir_grp = [
-                ['top', cc.v2(-1, 1)],
-                ['right', cc.v2(1, 1)],
-                ['bot', cc.v2(1, -1)],
-                ['left', cc.v2(-1, -1)],
-            ];
+            dir_grp = {
+                'top': cc.v2(-1, 1),
+                'right': cc.v2(1, 1),
+                'bot': cc.v2(1, -1),
+                'left': cc.v2(-1, -1),
+            };
         }
         var rad = null;
-        if(rel && this.node.rotation) {
+        if(rel && field.node.rotation) {
             // vec2.rotate(anticlockwise) is invert to node.rotation(clockwise) or affine.rotate(clockwise)
             // but the same direct with cc.affineTransformRotate(anticlockwise)
-            rad = - this.node.rotation * 180 / Math.PI;
+            rad = - field.node.rotation * 180 / Math.PI;
         }
-        var state = 'idle';
-        var key;
-        for(var i = 0; i < dir_grp.length + 1; i ++) {
-            var edge = dir_grp[i];
-            key = i;
-            if(edge instanceof Array) {
-                key = edge[0];
-                edge = edge[1];
-            }
+        var start = null;
+        var end = null;
+        for(var k in dir_grp) {
+            var edge = dir_grp[k];
             if(rad !== null) {
                 edge = edge.rotate(rad);
             }
-            var clockwise = (edge.cross(vec) >= 0);
-            if(state == 'idle') {
-                if(clockwise) {
-                    state = 'before';
-                }
-            } else if(state == 'before') {
-                if(!clockwise) {
-                    break;
-                }
+            if(start === null 
+                || util.vec.is_seq(start[0], edge, vec)) {
+                start = [edge, k];
+            }
+            if(end === null
+                || util.vec.is_seq(vec, edge, end[0])) {
+                end = [edge, k];
             }
         }
-        return key;
+        return [start, end];
     },
     
     update_movable: function () {

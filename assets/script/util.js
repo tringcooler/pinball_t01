@@ -118,6 +118,35 @@ var _float_eq = function (a, b, max_times = 50) {
     return Math.abs(a - b) <= Number.EPSILON * max_times;
 };
 
+var align = {
+    down: function (v, a) {
+        return (v - Math.abs(v % a));
+    },
+    up: function (v, a) {
+        return ((Math.floor((v - 1) / a) + 1) * a);
+    }
+};
+
+var vec = {
+    projection: function (s, d) {
+        var m = d.dot(s) / d.dot(d);
+        return d.mul(m);
+    },
+    is_seq: function (a, b, c) {
+        var v1, v2;
+        var clck = (a.cross(c) >= 0);
+        if(clck) {
+            v1 = a;
+            v2 = c;
+        } else {
+            v1 = c;
+            v2 = a;
+        }
+        var isin = (v1.cross(b) >= 0 && b.cross(v2) >= 0);
+        return (isin == clck);
+    },
+};
+
 // errata for rotate bug:
 // now: rslt = A * [[cos, sin], [-sin, cos]]
 
@@ -345,8 +374,7 @@ var affine = {
         var norm_flag = args[argi++];
         var sv = cc.v2(sx, sy);
         var dv = cc.v2(dx, dy);
-        var m = dv.dot(sv) / dv.dot(dv);
-        var rv = dv.mul(m);
+        var rv = vec.projection(sv, dv);
         var ra = affine.translate(rv.x, rv.y);
         if(norm_flag) {
             var nrv = sv.sub(rv);
@@ -527,6 +555,8 @@ module.exports = {
     array_set: array_set,
     dict_pool: dict_pool,
     float_eq: float_eq,
+    align: align,
+    vec: vec,
     affine: affine,
     rev_tracer: rev_tracer,
     dichotomy: dichotomy,
