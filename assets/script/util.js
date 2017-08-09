@@ -128,9 +128,14 @@ var align = {
 };
 
 var vec = {
-    projection: function (s, d) {
+    projection: function (s, d, coef = false) {
         var m = d.dot(s) / d.dot(d);
-        return d.mul(m);
+        var r = d.mul(m);
+        if(coef) {
+            return [r, m];
+        } else {
+            return r;
+        }
     },
     is_seq: function (a, b, c) {
         var v1, v2;

@@ -105,8 +105,9 @@ cc.Class({
                 var prj_vec;
                 if(this.contacts.length > 1) {
                     var rblk = this.get_vector_direct(anchorage_vec, vec_grp);
-                    if( (prj_vec = util.vec.projection(track_vec, rblk[0][0])) > 0
-                        || (prj_vec = util.vec.projection(track_vec, rblk[1][0])) > 0 ) {
+                    var _t;
+                    if( ([prj_vec, _t] = util.vec.projection(track_vec, rblk[0][0], true))[1] > 0
+                        || ([prj_vec, _t] = util.vec.projection(track_vec, rblk[1][0], true))[1] > 0 ) {
                         slide_trans = util.affine.translate(prj_vec.x, prj_vec.y);
                     }
                 } else {
