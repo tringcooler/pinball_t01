@@ -83,13 +83,18 @@ cc.Class({
         }
     },
     
-    _update_slide_trans: function (contacts, rev_trans) {
+    _update_slide_trans: function (rev_trans) {
         var slide_trans = util.affine.id();
-        if(contacts.length == 1 && this.get_rule_prop('slidable')) {
-            var contact = contacts[0];
-            if(contact.field.get_rule_prop('slidable')) {
-                //var track = this.rev_factors.tracer.slide_obv_trans();
-                var track = util.affine.translate_invert(rev_trans);
+        if(this.get_rule_prop('slidable')) {
+            var contact;
+            var track = util.affine.translate_invert(rev_trans);
+            for(var i = 0; i < this.contacts.length; i ++) {
+                contact = this.contacts[i];
+                if(!contact.field.get_rule_prop('slidable')) {
+                    break;
+                }
+            }
+            if(i >= this.contacts.length) {
                 var tangent = contact.p2.sub(contact.p1);
                 slide_trans = util.affine.translate_projection(
                     track, tangent.x, tangent.y);
@@ -211,6 +216,11 @@ cc.Class({
         return [cl, si];
     },
     
+    _get_curve_point: function (p1, p2, curve) {
+        var rp = p2.sub(p1).mul(curve).add(p1);
+        return rp;
+    },
+    
     // only for tangency, the minimum contact
     _points_points_intersect_line: function (src, dst) {
         var first_cl, second_cl;
@@ -220,7 +230,7 @@ cc.Class({
             [first_cl, si] = this._points_line_intersect_curve_length(src, d1, d2);
             if(first_cl) break;
         }
-        var dr;
+        var dr, dp;
         if(first_cl && dl > 2 && di < dl - 1) {
             var si_rng = [si - 1, si + 1];
             ndi = util.pmod(di + 1, dl);
@@ -238,25 +248,32 @@ cc.Class({
                     dr = [second_cl, [nsi, ndi], first_cl, [si, di]];
                 } else {
                     [d1, d2] = this._get_points_line(dst, di);
-                    return [d1, d2, di];
+                    dp = this._get_curve_point(d1, d2, first_cl[1]);
+                    return [d1, d2, di, dp];
                 }
             } else {
                 [d1, d2] = this._get_points_line(dst, di);
-                return [d1, d2, di];
+                dp = this._get_curve_point(d1, d2, first_cl[1]);
+                return [d1, d2, di, dp];
             }
         } else if(first_cl) {
-            return [d1, d2, di];
+            dp = this._get_curve_point(d1, d2, first_cl[1]);
+            return [d1, d2, di, dp];
         }
         if(dr) {
             var l1 = (1 - dr[0][1]) * dr[0][3];
             var l2 = dr[2][1] * dr[2][3];
+            var dc;
             if(l1 >= l2) {
                 di = dr[1][1];
+                dc = dr[0][1];
             } else {
                 di = dr[3][1];
+                dc = dr[2][1];
             }
             [d1, d2] = this._get_points_line(dst, di);
-            return [d1, d2, di];
+            dp = this._get_curve_point(d1, d2, dc);
+            return [d1, d2, di, dp];
         }
     },
     
@@ -274,6 +291,7 @@ cc.Class({
                     idxline: tl[2],
                     p1: tl[0],
                     p2: tl[1],
+                    pi: tl[3],
                 });
                 console.log('tangent', this.name, field.name, tl[0], tl[1]);
             }
@@ -289,6 +307,7 @@ cc.Class({
                     idxline: tl[2],
                     p1: tl[0],
                     p2: tl[1],
+                    pi: tl[3],
                 });
                 console.log('tangent_p', this.name, field.name, tl[0], tl[1]);
                 util.array_set.add(
@@ -296,6 +315,50 @@ cc.Class({
             }
         }
         return contacts;
+    },
+    
+    get_vector_direct: function (vec, field = null, dir_grp = null, rel = false) {
+        if(field === null) {
+            field = this;
+        }
+        if(dir_grp === null) {
+            dir_grp = [
+                ['top', cc.v2(-1, 1)],
+                ['right', cc.v2(1, 1)],
+                ['bot', cc.v2(1, -1)],
+                ['left', cc.v2(-1, -1)],
+            ];
+        }
+        var rad = null;
+        if(rel && this.node.rotation) {
+            // vec2.rotate(anticlockwise) is invert to node.rotation(clockwise) or affine.rotate(clockwise)
+            // but the same direct with cc.affineTransformRotate(anticlockwise)
+            rad = - this.node.rotation * 180 / Math.PI;
+        }
+        var state = 'idle';
+        var key;
+        for(var i = 0; i < dir_grp.length + 1; i ++) {
+            var edge = dir_grp[i];
+            key = i;
+            if(edge instanceof Array) {
+                key = edge[0];
+                edge = edge[1];
+            }
+            if(rad !== null) {
+                edge = edge.rotate(rad);
+            }
+            var clockwise = (edge.cross(vec) >= 0);
+            if(state == 'idle') {
+                if(clockwise) {
+                    state = 'before';
+                }
+            } else if(state == 'before') {
+                if(!clockwise) {
+                    break;
+                }
+            }
+        }
+        return key;
     },
     
     update_movable: function () {
@@ -306,12 +369,13 @@ cc.Class({
         console.log('curW', this.get_world().points[1], this.rev_factors.tracer.trans.tx, this.rev_factors.tracer.trans.ty);
         if(!this.has_interact('rigid')) {
             this.rev_factors.next_tracer.clean();
+            this.contacts = [];
             return;
         }
         console.log('slfps', this.name, this.get_world().points[0]);
         var rev_dt = this._get_collision_moment();
-        var contacts = this._get_collision_contacts(rev_dt);
-        console.log('cnct', this.name, contacts.length, contacts[0].field.name, contacts[0].p1, contacts[0].p2);
+        this.contacts = this._get_collision_contacts(rev_dt);
+        console.log('cnct', this.name, this.contacts.length, this.contacts[0].field.name, this.contacts[0].p1, this.contacts[0].p2);
         //rev_dt = 1; //!alert!
         var rev_m_trans = this.rev_trans(rev_dt);
         //rev_m_trans = cc.affineTransformMake(1,0,0,1,0,100);
@@ -324,7 +388,7 @@ cc.Class({
         this._update_pre_collision();
         console.log('cur', this.name, rev_dt, this.node.y, this.get_world().transform.ty);
         console.log('curx', this.node.x, this.get_world().transform.tx);
-        this._update_slide_trans(contacts, rev_m_trans);
+        this._update_slide_trans(rev_m_trans);
         console.log('slide', this.rev_factors.next_trans.tx, this.rev_factors.next_trans.ty, this.rev_factors.next_tracer.trans.tx, this.rev_factors.next_tracer.trans.ty);
         //var _t = this.node.getComponent('inertia');
         //_t.speed = cc.Vec2.ZERO;
@@ -356,6 +420,7 @@ cc.Class({
             tracer: new util.rev_tracer(trc_typ),
             next_tracer: new util.rev_tracer('slide'),
         };
+        this.contacts = [];
     },
     
     update_rule: function (dt, prio) {

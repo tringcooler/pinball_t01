@@ -342,11 +342,19 @@ var affine = {
             dx = dst;
             dy = args[argi++];
         }
+        var norm_flag = args[argi++];
         var sv = cc.v2(sx, sy);
         var dv = cc.v2(dx, dy);
         var m = dv.dot(sv) / dv.dot(dv);
         var rv = dv.mul(m);
-        return affine.translate(rv.x, rv.y);
+        var ra = affine.translate(rv.x, rv.y);
+        if(norm_flag) {
+            var nrv = sv.sub(rv);
+            var nra = affine.translate(nrv.x, nrv.y);
+            return [ra, nra];
+        } else {
+            return ra;
+        }
     },
     
     _test_convert: function () {
