@@ -82,19 +82,19 @@ cc.Class({
         if( rslt && ! (this.get_rule_prop('rect_field')
             && other.get_rule_prop('rect_field')) ) {
             var self_points = self_world.points;
-            console.log('ff1', this.name, self_points[0], self_points[1], self_points[2], self_points[3]);
+            //console.log('ff1', this.name, self_points[0], self_points[1], self_points[2], self_points[3]);
             if(self_trans) {
                 self_points = this.points_apply_affine_transform(
                     self_trans, self_points);
             }
-            console.log('ff2', self_points[0], self_points[1], self_points[2], self_points[3]);
+            //console.log('ff2', self_points[0], self_points[1], self_points[2], self_points[3]);
             var other_points = other_world.points;
             if(other_trans) {
                 other_points = this.points_apply_affine_transform(
                     other_trans, other_points);
             }
             rslt = cc.Intersection.polygonPolygon(self_points, other_points);
-            console.log('ff3', rslt, other_points[0], other_points[1], other_points[2], other_points[3]);
+            //console.log('ff3', rslt, other_points[0], other_points[1], other_points[2], other_points[3]);
         }
         return rslt;
     },

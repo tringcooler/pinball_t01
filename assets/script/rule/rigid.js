@@ -43,7 +43,7 @@ cc.Class({
                 dt = (dt - threshold) / (1 - threshold);
                 var trans = this.rev_factors.tracer.trans;
                 var slide_trans = this.rev_factors.next_tracer.trace(dt, mask);
-                console.log('rev_slide', dt, trans.tx, trans.ty, slide_trans.tx, slide_trans.ty);
+                //console.log('rev_slide', dt, trans.tx, trans.ty, slide_trans.tx, slide_trans.ty);
                 return util.affine.dot(slide_trans, trans);
             }
         } else {
@@ -311,7 +311,7 @@ cc.Class({
                     p2: tl[1],
                     pi: tl[3],
                 });
-                console.log('tangent', this.name, field.name, tl[0], tl[1]);
+                //console.log('tangent', this.name, field.name, tl[0], tl[1]);
             }
         });
         for(var i = 0; i < this.rev_factors.pre_collision.length; i ++) {
@@ -327,7 +327,7 @@ cc.Class({
                     p2: tl[1],
                     pi: tl[3],
                 });
-                console.log('tangent_p', this.name, field.name, tl[0], tl[1]);
+                //console.log('tangent_p', this.name, field.name, tl[0], tl[1]);
                 util.array_set.add(
                     this.rev_factors.pre_pre_collision, field);
             }
@@ -374,33 +374,33 @@ cc.Class({
     
     update_movable: function () {
         //this.update_world(this);
-        var _t1 = this.rev_factors.pre_trans.ty;
+        //var _t1 = this.rev_factors.pre_trans.ty;
         this.calc_rev_factors();
-        console.log('pre', this.name, _t1, this.rev_factors.pre_trans.ty);
-        console.log('curW', this.get_world().points[1], this.rev_factors.tracer.trans.tx, this.rev_factors.tracer.trans.ty);
+        //console.log('pre', this.name, _t1, this.rev_factors.pre_trans.ty);
+        //console.log('curW', this.get_world().points[1], this.rev_factors.tracer.trans.tx, this.rev_factors.tracer.trans.ty);
         if(!this.has_interact('rigid')) {
             this.rev_factors.next_tracer.clean();
             this.contacts = [];
             return;
         }
-        console.log('slfps', this.name, this.get_world().points[0]);
+        //console.log('slfps', this.name, this.get_world().points[0]);
         var rev_dt = this._get_collision_moment();
         this.contacts = this._get_collision_contacts(rev_dt);
-        console.log('cnct', this.name, this.contacts.length, this.contacts[0]?[this.contacts[0].field.name, this.contacts[0].p1, this.contacts[0].p2]:undefined);
+        //console.log('cnct', this.name, this.contacts.length, this.contacts[0]?[this.contacts[0].field.name, this.contacts[0].p1, this.contacts[0].p2]:undefined);
         //rev_dt = 1; //!alert!
         var rev_m_trans = this.rev_trans(rev_dt);
         //rev_m_trans = cc.affineTransformMake(1,0,0,1,0,100);
-        console.log('revm', rev_dt, rev_m_trans.tx, rev_m_trans.ty);
-        console.log('prex', this.node.x, this.rev_factors.pre_trans.tx);
+        //console.log('revm', rev_dt, rev_m_trans.tx, rev_m_trans.ty);
+        //console.log('prex', this.node.x, this.rev_factors.pre_trans.tx);
         //this.apply_loc_affine(rev_m_trans);
         this.apply_world_affine(rev_m_trans);
         this._update_pre_trans(rev_m_trans);
-        console.log('pc',this.name, this.rev_factors.pre_collision.length, this.rev_factors.pre_collision[0]?this.rev_factors.pre_collision[0].name:undefined, this.get_interact('rigid')[0].name);
+        //console.log('pc',this.name, this.rev_factors.pre_collision.length, this.rev_factors.pre_collision[0]?this.rev_factors.pre_collision[0].name:undefined, this.get_interact('rigid')[0].name);
         this._update_pre_collision();
-        console.log('cur', this.name, rev_dt, this.node.y, this.get_world().transform.ty);
-        console.log('curx', this.node.x, this.get_world().transform.tx);
+        //console.log('cur', this.name, rev_dt, this.node.y, this.get_world().transform.ty);
+        //console.log('curx', this.node.x, this.get_world().transform.tx);
         this._update_slide_trans(rev_m_trans);
-        console.log('slide', this.rev_factors.next_trans.tx, this.rev_factors.next_trans.ty, this.rev_factors.next_tracer.trans.tx, this.rev_factors.next_tracer.trans.ty);
+        //console.log('slide', this.rev_factors.next_trans.tx, this.rev_factors.next_trans.ty, this.rev_factors.next_tracer.trans.tx, this.rev_factors.next_tracer.trans.ty);
         //var _t = this.node.getComponent('inertia');
         //_t.speed = cc.Vec2.ZERO;
     },
@@ -438,9 +438,9 @@ cc.Class({
         this._super();
         if(this.movable) {
             if(prio == 101) {
-                if(dt > 0.1) {
-                    console.log('break here');
-                }
+                //if(dt > 0.1) {
+                //    console.log('break here');
+                //}
                 this.update_movable();
             } else if(prio == 1) {
                 this.update_next_movable();

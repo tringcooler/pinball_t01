@@ -164,7 +164,7 @@ cc.Class({
     update: function (dt) {
         //if(dt > 0.1) dt = 0.1; //!alert!
         //dt = 0.02; //!alert!
-        console.log(dt);
+        //console.log(dt);
         this.update_rules(dt, [0, 99]);
     },
     
