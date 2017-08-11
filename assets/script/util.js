@@ -246,6 +246,18 @@ var affine = {
             a1.b * a2.tx + a1.d * a2.ty + a1.ty);
     },
     
+    only_translate: function (a, b, c, d, tx, ty) {
+        if(typeof a == 'object') {
+            b = a.b;
+            c = a.c;
+            d = a.d;
+            tx = a.tx;
+            ty = a.ty;
+            a = a.a;
+        }
+        return (a == 1 && b === 0 && c === 0 && d == 1);
+    },
+    
     affine2rsrt: function (a, b, c, d, tx, ty) {
         if(typeof a == 'object') {
             b = a.b;
@@ -254,6 +266,9 @@ var affine = {
             tx = a.tx;
             ty = a.ty;
             a = a.a;
+        }
+        if(affine.only_translate(a, b, c, d, tx, ty)) {
+            return [0, 1, 1, 0, tx, ty];
         }
         var sp = Math.sqrt( Math.pow(a + d, 2) + Math.pow(b - c, 2) );
         // let sy always bigger than sx
@@ -298,6 +313,9 @@ var affine = {
             tx = a.tx;
             ty = a.ty;
             a = a.a;
+        }
+        if(affine.only_translate(a, b, c, d, tx, ty)) {
+            return [0, 0, 1, 1, 0, tx, ty];
         }
         var sx = Math.sqrt( Math.pow(a, 2) + Math.pow(b, 2) );
         var kx, cosr, sinr;
