@@ -42,7 +42,6 @@ cc.Class({
                 dt = (dt - this._slide_curve_threshold) / (1 - this._slide_curve_threshold);
                 var trans = this.rev_factors.tracer.trans;
                 var slide_trans = this.rev_factors.next_tracer.trace(dt, mask);
-                //console.log('rev_slide', dt, trans.tx, trans.ty, slide_trans.tx, slide_trans.ty);
                 return util.affine.dot(slide_trans, trans);
             }
         } else {
@@ -78,7 +77,6 @@ cc.Class({
         if(this.contacts.length > 0 && this.get_rule_prop('slidable')) {
             var i;
             var vec_grp = [];
-            //var track = util.affine.translate_invert(rev_trans);
             var anchorage_vec = cc.v2(rev_trans.tx, rev_trans.ty);
             var track_vec = cc.v2(-rev_trans.tx, -rev_trans.ty);
             for(i = 0; i < this.contacts.length; i ++) {
@@ -103,8 +101,6 @@ cc.Class({
                 } else {
                     prj_vec = util.vec.projection(track_vec, vec_grp[0]);
                     slide_trans = util.affine.translate(prj_vec.x, prj_vec.y);
-                    //slide_trans = util.affine.translate_projection(
-                    //    track, vec_grp[0].x, vec_grp[0].y);
                 }
             }
         }
@@ -459,7 +455,6 @@ cc.Class({
                     p2: tl[1],
                     pi: tl[3],
                 });
-                //console.log('tangent', this.name, field.name, tl[0], tl[1]);
             }
         });
         for(var i = 0; i < this.rev_factors.pre_collision.length; i ++) {
@@ -475,7 +470,6 @@ cc.Class({
                     p2: tl[1],
                     pi: tl[3],
                 });
-                //console.log('tangent_p', this.name, field.name, tl[0], tl[1]);
                 util.array_set.add(
                     this.rev_factors.pre_pre_collision, field);
             }
@@ -532,42 +526,23 @@ cc.Class({
     },
     
     update_movable: function () {
-        //this.update_world(this);
-        //var _t1 = this.rev_factors.pre_trans.ty;
         this.calc_rev_factors();
-        //console.log('pre', this.name, _t1, this.rev_factors.pre_trans.ty);
-        //console.log('curW', this.get_world().points[1], this.rev_factors.tracer.trans.tx, this.rev_factors.tracer.trans.ty);
         this.contacts = [];
         if(!this.has_interact('rigid')) {
             this.rev_factors.next_tracer.clean();
             return;
         }
-        //console.log('slfps', this.name, this.get_world().points[0]);
         var rev_dt = this.get_collision();
-        //console.log('cnct', this.name, this.contacts.length, this.contacts[0]?[this.contacts[0].field.name, this.contacts[0].p1, this.contacts[0].p2]:undefined);
-        //rev_dt = 1; //!alert!
         var rev_m_trans = this.rev_trans(rev_dt);
-        //rev_m_trans = cc.affineTransformMake(1,0,0,1,0,100);
-        //console.log('revm', rev_dt, rev_m_trans.tx, rev_m_trans.ty);
-        //console.log('prex', this.node.x, this.rev_factors.pre_trans.tx);
-        //this.apply_loc_affine(rev_m_trans);
         this.apply_world_affine(rev_m_trans);
         this._update_pre_trans(rev_m_trans);
-        //console.log('pc',this.name, this.rev_factors.pre_collision.length, this.rev_factors.pre_collision[0]?this.rev_factors.pre_collision[0].name:undefined, this.get_interact('rigid')[0].name);
         this._update_pre_collision();
-        //console.log('cur', this.name, rev_dt, this.node.y, this.get_world().transform.ty);
-        //console.log('curx', this.node.x, this.get_world().transform.tx);
         this._update_slide_trans(rev_m_trans);
-        //console.log('slide', this.rev_factors.next_trans.tx, this.rev_factors.next_trans.ty, this.rev_factors.next_tracer.trans.tx, this.rev_factors.next_tracer.trans.ty);
-        //var _t = this.node.getComponent('inertia');
-        //_t.speed = cc.Vec2.ZERO;
     },
     
     update_next_movable: function () {
         if(this.rev_factors.next_tracer.dirty) {
             var slide_trans = this.rev_factors.next_trans;
-            //var slide_trans = this.rev_factors.next_tracer.trans;
-            //var slide_trans = util.affine.translate(3,3);
             this.apply_world_affine(slide_trans);
             this._update_pre_trans(slide_trans);
         }
@@ -598,9 +573,6 @@ cc.Class({
         this._super();
         if(this.movable) {
             if(prio == 101) {
-                //if(dt > 0.1) {
-                //    console.log('break here');
-                //}
                 this.update_movable();
             } else if(prio == 1) {
                 this.update_next_movable();

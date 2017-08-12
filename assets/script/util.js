@@ -346,8 +346,6 @@ var affine = {
         } else {
             return [0, 0, 0, 0];
         }
-        // ky = 0 cause an error that cosr/sinr > 1 when A = [-1, 2, -3, -4]
-        // console.log(kx, sx, sy, cosr, sinr);
         var r = affine._arccs(cosr, sinr)[0];
         return [kx, 0, sx, sy, r, tx, ty];
     },
@@ -413,9 +411,9 @@ var affine = {
             var A = cbi.apply(this, cb(a, b, c, d));
             if(!( float_eq(A.a, a) && float_eq(A.b, b)
                 && float_eq(A.c, c) && float_eq(A.d, d) )) {
-                console.log(a, b, c, d);
-                console.log(A.a, A.b, A.c, A.d);
-                console.log(Math.abs(A.a - a), Math.abs(A.b - b),
+                cc.log(a, b, c, d);
+                cc.log(A.a, A.b, A.c, A.d);
+                cc.log(Math.abs(A.a - a), Math.abs(A.b - b),
                     Math.abs(A.c - c), Math.abs(A.d - d));
                 throw 'test faild ' + cb.name;
             }

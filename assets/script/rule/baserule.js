@@ -113,22 +113,18 @@ cc.Class({
     },
     
     apply_loc_affine: function (af) {
-        //var cur = this.node.getNodeToParentTransformAR();
         // not already updated after other rule's change
         // this return the status of update routing began after render
         var cur = this.node.getNodeToWorldTransformAR();
         var aft = util.affine.dot(cur, af);
-        //console.log(af.tx, af.ty, aft.tx, aft.ty);
         return this.set_n2w_affine(aft);
     },
     
     apply_world_affine: function (af) {
-        //var cur = this.node.getNodeToParentTransformAR();
         // not already updated after other rule's change
         // this return the status of update routing began after render
         var cur = this.node.getNodeToWorldTransformAR();
         var aft = util.affine.dot(af, cur);
-        //console.log(af.tx, af.ty, aft.tx, aft.ty);
         return this.set_n2w_affine(aft);
     },
     
@@ -144,7 +140,6 @@ cc.Class({
 
     // use this for initialization
     onLoad: function () {
-        //cc.log(this.name, cc.js.getClassName(this));
         var ruler_cp = null;
         var ruler_nd = cc.find('ruler');
         if(!ruler_nd) {
