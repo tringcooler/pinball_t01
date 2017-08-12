@@ -289,7 +289,8 @@ cc.Class({
     
     _get_collision_rect: function () {
         if(!this.get_rule_prop('rect_field')) {
-            return [false, null];
+            this._rect_collision_dt = null;
+            return false;
         }
         var track = this.rev_factors.tracer.slide_obv_trans();
         var all_rect = true;
@@ -322,7 +323,8 @@ cc.Class({
             if(this.in_interact('rigid', field)) continue;
             _f(field);
         }
-        return [all_rect, rev_dt];
+        this._rect_collision_dt = rev_dt;
+        return all_rect;
     },
     
     _line_line_intersect_curve_length: function (s1, s2, d1, d2) {
@@ -496,11 +498,10 @@ cc.Class({
     },
     
     get_collision: function () {
-        var rev_dt, _t;
-        this._rect_collision_dt = null;
+        var rev_dt;
         if(this.get_rule_prop('rect_field')
-            && ([_t, rev_dt] = this._get_collision_rect())[0] ) {
-            this._rect_collision_dt = rev_dt;
+            && this._get_collision_rect()) {
+            rev_dt = this._rect_collision_dt;
         } else {
             rev_dt = this._get_collision_moment();
             this._get_collision_contacts(rev_dt);
