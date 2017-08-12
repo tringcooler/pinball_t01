@@ -34,13 +34,12 @@ cc.Class({
     },
     
     rev_trans: function (dt, mask = 0xf) {
-        var threshold = 0.5;
         if(this.rev_factors.next_tracer.dirty) {
-            if(dt <= threshold) {
-                dt = dt / threshold;
+            if(dt <= this._slide_curve_threshold) {
+                dt = dt / this._slide_curve_threshold;
                 return this.rev_factors.tracer.trace(dt, mask);
             } else {
-                dt = (dt - threshold) / (1 - threshold);
+                dt = (dt - this._slide_curve_threshold) / (1 - this._slide_curve_threshold);
                 var trans = this.rev_factors.tracer.trans;
                 var slide_trans = this.rev_factors.next_tracer.trace(dt, mask);
                 //console.log('rev_slide', dt, trans.tx, trans.ty, slide_trans.tx, slide_trans.ty);
@@ -52,10 +51,9 @@ cc.Class({
     },
     
     prev_coll_rev_trans: function (dt, dt_prec) {
-        var threshold = 0.5;
-        if( this.rev_factors.next_tracer.dirty && dt > threshold) {
+        if( this.rev_factors.next_tracer.dirty && dt > this._slide_curve_threshold) {
             var cur_trans = this.rev_trans(dt);
-            var obv_dt = Math.min(dt_prec, threshold);
+            var obv_dt = Math.min(dt_prec, this._slide_curve_threshold);
             var obv_trans = util.affine.invert(this.rev_trans(obv_dt));
             return util.affine.dot(obv_trans, cur_trans);
         } else {
@@ -183,9 +181,14 @@ cc.Class({
         return r;
     },
     
-    _get_1_collision_moment_contact_rect: function (other, track) {
+    _get_1_collision_moment_contact_rect: function (other, track, i_offset = null) {
         var self_rect = this.get_world(this).aabb;
         var other_rect = this.get_world(other).aabb;
+        if(i_offset !== null) {
+            self_rect = self_rect.clone();
+            self_rect.x -= i_offset.x;
+            self_rect.y -= i_offset.y;
+        }
         var _mid = function (amin, amax, bmin, bmax) {
             var d = [
                 amax - amin,
@@ -295,15 +298,16 @@ cc.Class({
         var track = this.rev_factors.tracer.slide_obv_trans();
         var all_rect = true;
         var rev_dt = 0;
-        var _f = function (field) {
+        var _f = function (track, i_offset, field) {
             if(!field.get_rule_prop('rect_field')) {
                 all_rect = false;
                 return;
             }
-            var info = this._get_1_collision_moment_contact_rect(field, track);
+            var info = this._get_1_collision_moment_contact_rect(field, track, i_offset);
             if(info && info[0] > 0) {
-                if(info[0] > rev_dt) {
-                    rev_dt = info[0];
+                var _dt = Math.min(info[0], 1);
+                if(_dt > rev_dt) {
+                    rev_dt = _dt;
                 }
                 for(var i = 1; i < info.length; i ++) {
                     var l = info[i][0];
@@ -316,12 +320,30 @@ cc.Class({
                     });
                 }
             }
-        }.bind(this);
-        this.foreach_interact('rigid', _f);
-        for(var i = 0; i < this.rev_factors.pre_collision.length; i ++) {
-            var field = this.rev_factors.pre_collision[i];
+        };
+        var i, field;
+        this.foreach_interact('rigid', _f.bind(this, track, null));
+        for(i = 0; i < this.rev_factors.pre_collision.length; i ++) {
+            field = this.rev_factors.pre_collision[i];
             if(this.in_interact('rigid', field)) continue;
-            _f(field);
+            _f.call(this, track, null, field);
+        }
+        if(this.rev_factors.next_tracer.dirty) {
+            if(rev_dt >= 1) {
+                var pre_off = track;
+                track = this.rev_factors.next_tracer.slide_obv_trans();
+                rev_dt = 0;
+                this.foreach_interact('rigid', _f.bind(this, track, pre_off));
+                for(i = 0; i < this.rev_factors.pre_collision.length; i ++) {
+                    field = this.rev_factors.pre_collision[i];
+                    if(this.in_interact('rigid', field)) continue;
+                    _f.call(this, track, pre_off, field);
+                }
+                rev_dt = rev_dt * (1 - this._slide_curve_threshold)
+                    + this._slide_curve_threshold;
+            } else {
+                rev_dt *= this._slide_curve_threshold;
+            }
         }
         this._rect_collision_dt = rev_dt;
         return all_rect;
@@ -568,6 +590,7 @@ cc.Class({
             next_tracer: new util.rev_tracer('slide'),
         };
         this.contacts = [];
+        this._slide_curve_threshold = 0.5;
         this._rect_collision_dt = null;
     },
     
