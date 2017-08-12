@@ -64,23 +64,15 @@ cc.Class({
     },
     
     _update_pre_trans: function (af) {
-        if(!this.get_rule_prop('rect_field')) {
-            // loc affine
-            //this.rev_factors.pre_trans = util.affine.dot(
-            //    this.rev_factors.pre_trans, af);
-            // world affine
-            this.rev_factors.pre_trans = util.affine.dot(
-                af, this.rev_factors.pre_trans);
-        }
+        this.rev_factors.pre_trans = util.affine.dot(
+            af, this.rev_factors.pre_trans);
     },
     
     _update_pre_collision: function () {
-        if(!this.get_rule_prop('rect_field')) {
-            this.rev_factors.pre_collision = this.rev_factors.pre_pre_collision;
-            this.rev_factors.pre_pre_collision = [];
-            util.array_set.add(
-                this.rev_factors.pre_collision, this.get_interact('rigid'));
-        }
+        this.rev_factors.pre_collision = this.rev_factors.pre_pre_collision;
+        this.rev_factors.pre_pre_collision = [];
+        util.array_set.add(
+            this.rev_factors.pre_collision, this.get_interact('rigid'));
     },
     
     _update_slide_trans: function (rev_trans) {
@@ -88,7 +80,7 @@ cc.Class({
         if(this.contacts.length > 0 && this.get_rule_prop('slidable')) {
             var i;
             var vec_grp = [];
-            var track = util.affine.translate_invert(rev_trans);
+            //var track = util.affine.translate_invert(rev_trans);
             var anchorage_vec = cc.v2(rev_trans.tx, rev_trans.ty);
             var track_vec = cc.v2(-rev_trans.tx, -rev_trans.ty);
             for(i = 0; i < this.contacts.length; i ++) {
@@ -164,8 +156,12 @@ cc.Class({
     _get_collision_moment: function () {
         var dichotomy = util.dichotomy;
         var _chk_collision = (function (dt) {
+            if(this._rect_collision_dt !== null && dt <= this._rect_collision_dt) {
+                return false;
+            }
             var rev_trans = this.rev_trans(dt);
             var chk = this.foreach_interact('rigid', function (field) {
+                if(this._pass_rect_collision(field)) return;
                 if(this.field_field(field, rev_trans)) {
                     return false;
                 }
@@ -173,6 +169,7 @@ cc.Class({
             if(chk !== false) {
                 for(var i = 0; i < this.rev_factors.pre_collision.length; i ++) {
                     var other = this.rev_factors.pre_collision[i];
+                    if(this._pass_rect_collision(other)) continue;
                     if(this.in_interact('rigid', other)) continue;
                     if(this.field_field(other, rev_trans)) {
                         chk = false;
@@ -186,18 +183,146 @@ cc.Class({
         return r;
     },
     
-    _get_collision_moment_rect: function () {
-        if(!this.get_rule_prop('rect_field')) {
-            return undefined;
-        }
-        var brk = false === this.foreach_interact('rigid', function (field) {
-            if(!field.get_rule_prop('rect_field')) {
-                return false;
+    _get_1_collision_moment_contact_rect: function (other, track) {
+        var self_rect = this.get_world(this).aabb;
+        var other_rect = this.get_world(other).aabb;
+        var _mid = function (amin, amax, bmin, bmax) {
+            var d = [
+                amax - amin,
+                amax - bmin,
+                bmax - amin,
+                bmax - bmin,
+            ];
+            var r, dmin = null;
+            for(var i = 0; i < d.length; i ++) {
+                if(d[i] < 0) {
+                    return null;
+                }
+                if(dmin === null || d[i] < dmin) {
+                    dmin = d[i];
+                    r = d[i] / 2 + ((i % 2) ? bmin : amin);
+                }
             }
-        });
-        if(brk) {
-            return undefined;
+            return r;
+        };
+        var rx, ry, rslx, rsly, rlx, rly;
+        if(track.tx >= 0) {
+            rx = Math.max(self_rect.xMax - other_rect.xMin, 0);
+            rslx = [
+                cc.v2(self_rect.xMax, self_rect.yMin),
+                cc.v2(self_rect.xMax, self_rect.yMax),
+            ];
+            rlx = [
+                cc.v2(other_rect.xMin, other_rect.yMin),
+                cc.v2(other_rect.xMin, other_rect.yMax),
+            ];
+        } else {
+            rx = Math.min(self_rect.xMin - other_rect.xMax, 0);
+            rslx = [
+                cc.v2(self_rect.xMin, self_rect.yMin),
+                cc.v2(self_rect.xMin, self_rect.yMax),
+            ];
+            rlx = [
+                cc.v2(other_rect.xMax, other_rect.yMin),
+                cc.v2(other_rect.xMax, other_rect.yMax),
+            ];
         }
+        if(track.ty >= 0) {
+            ry = Math.max(self_rect.yMax - other_rect.yMin, 0);
+            rsly = [
+                cc.v2(self_rect.xMin, self_rect.yMax),
+                cc.v2(self_rect.xMax, self_rect.yMax),
+            ];
+            rly = [
+                cc.v2(other_rect.xMin, other_rect.yMin),
+                cc.v2(other_rect.xMax, other_rect.yMin),
+            ];
+        } else {
+            ry = Math.min(self_rect.yMin - other_rect.yMax, 0);
+            rsly = [
+                cc.v2(self_rect.xMin, self_rect.yMin),
+                cc.v2(self_rect.xMax, self_rect.yMin),
+            ];
+            rly = [
+                cc.v2(other_rect.xMin, other_rect.yMax),
+                cc.v2(other_rect.xMax, other_rect.yMax),
+            ];
+        }
+        var rdx = rx / track.tx;
+        var rdy = ry / track.ty;
+        if(rdx == rdy) {
+            var rp = cc.v2(rlx[0].x, rly[0].y);
+            return [ rdx, [rlx, rp], [rly, rp] ];
+        }
+        var _fmx = function () {
+            var rc_d = track.ty * rdx;
+            var rc_mid = _mid(
+                rlx[0].y, rlx[1].y,
+                rslx[0].y - rc_d, rslx[1].y - rc_d);
+            if(rc_mid !== null) {
+                return [ rdx, [rlx, cc.v2(rlx[0].x, rc_mid)] ];
+            }
+        };
+        var _fmy = function () {
+            var rc_d = track.tx * rdy;
+            var rc_mid = _mid(
+                rly[0].x, rly[1].x,
+                rsly[0].x - rc_d, rsly[1].x - rc_d);
+            if(rc_mid !== null) {
+                return [ rdy, [rly, cc.v2(rc_mid, rly[0].y)] ];
+            }
+        };
+        if( rdx > rdy ) {
+            return (_fmx() || _fmy());
+        } else {
+            return (_fmy() || _fmx());
+        }
+    },
+    
+    _pass_rect_collision: function (field) {
+        return (
+            this._rect_collision_dt !== null
+            && this.get_rule_prop('rect_field')
+            && field.get_rule_prop('rect_field')
+        );
+    },
+    
+    _get_collision_rect: function () {
+        if(!this.get_rule_prop('rect_field')) {
+            return [false, null];
+        }
+        var track = this.rev_factors.tracer.slide_obv_trans();
+        var all_rect = true;
+        var rev_dt = 0;
+        var _f = function (field) {
+            if(!field.get_rule_prop('rect_field')) {
+                all_rect = false;
+                return;
+            }
+            var info = this._get_1_collision_moment_contact_rect(field, track);
+            if(info && info[0] > 0) {
+                if(info[0] > rev_dt) {
+                    rev_dt = info[0];
+                }
+                for(var i = 1; i < info.length; i ++) {
+                    var l = info[i][0];
+                    var p = info[i][1];
+                    this.contacts.push({
+                        field: field,
+                        p1: l[0],
+                        p2: l[1],
+                        pi: p,
+                    });
+                }
+            }
+        }.bind(this);
+        this.foreach_interact('rigid', _f);
+        for(var i = 0; i < this.rev_factors.pre_collision.length; i ++) {
+            var field = this.rev_factors.pre_collision[i];
+            if(this.in_interact('rigid', field)) continue;
+            _f(field);
+        }
+        return [all_rect, rev_dt];
     },
     
     _line_line_intersect_curve_length: function (s1, s2, d1, d2) {
@@ -299,14 +424,13 @@ cc.Class({
         var coll_ta = this.prev_coll_rev_trans(
             rev_dt, this._dichotomy_tree_rev_dt().precision);
         var coll_ps = this.points_apply_affine_transform(coll_ta);
-        var contacts = [];
         this.foreach_interact('rigid', function (field) {
+            if(this._pass_rect_collision(field)) return;
             var other_ps = field.get_world(field).points;
             var tl = this._points_points_intersect_line(coll_ps, other_ps);
             if(tl) {
-                contacts.push({
+                this.contacts.push({
                     field: field,
-                    idxline: tl[2],
                     p1: tl[0],
                     p2: tl[1],
                     pi: tl[3],
@@ -316,13 +440,13 @@ cc.Class({
         });
         for(var i = 0; i < this.rev_factors.pre_collision.length; i ++) {
             var field = this.rev_factors.pre_collision[i];
+            if(this._pass_rect_collision(field)) continue;
             if(this.in_interact('rigid', field)) continue;
             var other_ps = field.get_world(field).points;
             var tl = this._points_points_intersect_line(coll_ps, other_ps);
             if(tl) {
-                contacts.push({
+                this.contacts.push({
                     field: field,
-                    idxline: tl[2],
                     p1: tl[0],
                     p2: tl[1],
                     pi: tl[3],
@@ -332,7 +456,6 @@ cc.Class({
                     this.rev_factors.pre_pre_collision, field);
             }
         }
-        return contacts;
     },
     
     get_vector_direct: function (vec, dir_grp = null, rel = false, field = null) {
@@ -372,20 +495,32 @@ cc.Class({
         return [start, end];
     },
     
+    get_collision: function () {
+        var rev_dt, _t;
+        this._rect_collision_dt = null;
+        if(this.get_rule_prop('rect_field')
+            && ([_t, rev_dt] = this._get_collision_rect())[0] ) {
+            this._rect_collision_dt = rev_dt;
+        } else {
+            rev_dt = this._get_collision_moment();
+            this._get_collision_contacts(rev_dt);
+        }
+        return rev_dt;
+    },
+    
     update_movable: function () {
         //this.update_world(this);
         //var _t1 = this.rev_factors.pre_trans.ty;
         this.calc_rev_factors();
         //console.log('pre', this.name, _t1, this.rev_factors.pre_trans.ty);
         //console.log('curW', this.get_world().points[1], this.rev_factors.tracer.trans.tx, this.rev_factors.tracer.trans.ty);
+        this.contacts = [];
         if(!this.has_interact('rigid')) {
             this.rev_factors.next_tracer.clean();
-            this.contacts = [];
             return;
         }
         //console.log('slfps', this.name, this.get_world().points[0]);
-        var rev_dt = this._get_collision_moment();
-        this.contacts = this._get_collision_contacts(rev_dt);
+        var rev_dt = this.get_collision();
         //console.log('cnct', this.name, this.contacts.length, this.contacts[0]?[this.contacts[0].field.name, this.contacts[0].p1, this.contacts[0].p2]:undefined);
         //rev_dt = 1; //!alert!
         var rev_m_trans = this.rev_trans(rev_dt);
@@ -432,6 +567,7 @@ cc.Class({
             next_tracer: new util.rev_tracer('slide'),
         };
         this.contacts = [];
+        this._rect_collision_dt = null;
     },
     
     update_rule: function (dt, prio) {
