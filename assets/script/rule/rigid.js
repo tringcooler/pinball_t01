@@ -294,7 +294,7 @@ cc.Class({
         var track = this.rev_factors.tracer.slide_obv_trans();
         var all_rect = true;
         var rev_dt = 0;
-        var _f = function (track, i_offset, field) {
+        var _f = function (track, i_offset, add_ppc, field) {
             if(!field.get_rule_prop('rect_field')) {
                 all_rect = false;
                 return;
@@ -314,26 +314,32 @@ cc.Class({
                         p2: l[1],
                         pi: p,
                     });
+                    if(add_ppc) {
+                        util.array_set.add(
+                            this.rev_factors.pre_pre_collision, field);
+                    }
                 }
             }
         };
         var i, field;
-        this.foreach_interact('rigid', _f.bind(this, track, null));
+        this.foreach_interact('rigid', _f.bind(this, track, null, false));
         for(i = 0; i < this.rev_factors.pre_collision.length; i ++) {
             field = this.rev_factors.pre_collision[i];
             if(this.in_interact('rigid', field)) continue;
-            _f.call(this, track, null, field);
+            _f.call(this, track, null, true, field);
         }
         if(this.rev_factors.next_tracer.dirty) {
             if(rev_dt >= 1) {
+                this.contacts = [];
+                this.rev_factors.pre_pre_collision = [];
                 var pre_off = track;
                 track = this.rev_factors.next_tracer.slide_obv_trans();
                 rev_dt = 0;
-                this.foreach_interact('rigid', _f.bind(this, track, pre_off));
+                this.foreach_interact('rigid', _f.bind(this, track, pre_off, false));
                 for(i = 0; i < this.rev_factors.pre_collision.length; i ++) {
                     field = this.rev_factors.pre_collision[i];
                     if(this.in_interact('rigid', field)) continue;
-                    _f.call(this, track, pre_off, field);
+                    _f.call(this, track, pre_off, true, field);
                 }
                 rev_dt = rev_dt * (1 - this._slide_curve_threshold)
                     + this._slide_curve_threshold;
