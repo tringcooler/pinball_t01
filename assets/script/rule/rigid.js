@@ -27,6 +27,14 @@ cc.Class({
         rule_interacts: ['rigid'],
     },
     
+    // can overwrite by derived class
+    is_slidable: function (field = null) {
+        if(field === null) {
+            field = this;
+        }
+        return field.get_rule_prop('slidable');
+    },
+    
     calc_rev_factors: function () {
         var cur_trans = this.get_world(this).transform;
         this.rev_factors.tracer.calc(cur_trans, this.rev_factors.pre_trans);
@@ -74,14 +82,14 @@ cc.Class({
     
     _update_slide_trans: function (rev_trans) {
         var slide_trans = util.affine.id();
-        if(this.contacts.length > 0 && this.get_rule_prop('slidable')) {
+        if(this.contacts.length > 0 && this.is_slidable()) {
             var i;
             var vec_grp = [];
             var anchorage_vec = cc.v2(rev_trans.tx, rev_trans.ty);
             var track_vec = cc.v2(-rev_trans.tx, -rev_trans.ty);
             for(i = 0; i < this.contacts.length; i ++) {
                 var contact = this.contacts[i];
-                if(!contact.field.get_rule_prop('slidable')) {
+                if(!this.is_slidable(contact.field)) {
                     break;
                 }
                 var tangent = contact.p2.sub(contact.p1);
@@ -546,11 +554,17 @@ cc.Class({
         this._update_slide_trans(rev_m_trans);
     },
     
-    update_next_movable: function () {
+    get_next_trans: function () {
         if(this.rev_factors.next_tracer.dirty) {
-            var slide_trans = this.rev_factors.next_trans;
-            this.apply_world_affine(slide_trans);
-            this._update_pre_trans(slide_trans);
+            return this.rev_factors.next_trans;
+        }
+    },
+    
+    update_next_movable: function () {
+        var next_trans;
+        if( (next_trans = this.get_next_trans()) ) {
+            this.apply_world_affine(next_trans);
+            this._update_pre_trans(next_trans);
         }
     },
     
