@@ -152,11 +152,27 @@ cc.Class({
         this._pause_prio = [0, -1];
         this._pause_tags = [];
     },
+    
+    get_global: function (rule) {
+        var key = rule.get_rule_prop('name');
+        if(!(key in this.global_pool)) {
+            this.global_pool[key] = {};
+        }
+        return this.global_pool[key];
+    },
+    
+    release_global: function (rule) {
+        var key = rule.get_rule_prop('name');
+        var r = (key in this.global_pool);
+        delete this.global_pool[key];
+        return r;
+    },
 
     // use this for initialization
     onLoad: function () {
         cc.log('ruler init');
         this.rule_pool = [];
+        this.global_pool = {};
         this.unpause();
     },
 

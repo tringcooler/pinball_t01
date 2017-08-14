@@ -128,6 +128,16 @@ cc.Class({
         return this.set_n2w_affine(aft);
     },
     
+    get_global: function (key) {
+        var pool = this.ruler.get_global(this);
+        return pool[key];
+    },
+    
+    set_global: function (key, val) {
+        var pool = this.ruler.get_global(this);
+        pool[key] = val;
+    },
+    
     init_rule: function () {
         this._inited = true;
     },
