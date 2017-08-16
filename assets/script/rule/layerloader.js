@@ -25,19 +25,35 @@ cc.Class({
         rule_priority: 50,
     },
     
-    _res_refinc: function (res_name) {
-        if( !(res_name in this._resources) ) {
-            this._resources[res_name] = 0;
+    _res_refinc: function (res_names) {
+        if(!res_names) {
+            return;
+        } else if( !(res_names instanceof Array) ) {
+            res_names = [res_names];
         }
-        this._resources[res_name] ++;
+        for(var i = 0; i < res_names.length; i ++) {
+            var res_name = res_names[i];
+            if( !(res_name in this._resources) ) {
+                this._resources[res_name] = 0;
+            }
+            this._resources[res_name] ++;
+        }
     },
     
-    _res_refdec: function (res_name) {
-        if( !(res_name in this._resources) ) return;
-        this._resources[res_name] --;
-        if(this._resources[res_name] <= 0) {
-            cc.loader.release(res_name);
-            delete this._resources[res_name];
+    _res_refdec: function (res_names) {
+        if(!res_names) {
+            return;
+        } else if( !(res_names instanceof Array) ) {
+            res_names = [res_names];
+        }
+        for(var i = 0; i < res_names.length; i ++) {
+            var res_name = res_names[i];
+            if( !(res_name in this._resources) ) continue;
+            this._resources[res_name] --;
+            if(this._resources[res_name] <= 0) {
+                cc.loader.release(res_name);
+                delete this._resources[res_name];
+            }
         }
     },
     
@@ -67,11 +83,7 @@ cc.Class({
         dst_node.y += block_info.position.y;
         block_info.root_node = dst_node;
         block_info.resources_depends = scene.dependAssets;
-        if(block_info.resources_depends) {
-            for (i = 0; i < block_info.resources_depends.length; i ++) {
-                this._res_refinc(block_info.resources_depends[i]);
-            }
-        }
+        this._res_refinc(block_info.resources_depends);
         cc.loader.release(asset);
         block_info.state = 'load';
     },
@@ -87,7 +99,8 @@ cc.Class({
             root_node: null,
             resources_depends: null,
         };
-        cc.director.preloadScene(scene_name,
+        var scene_info = cc.director._getSceneUuid(scene_name);
+        cc.AssetLibrary.loadAsset(scene_info.uuid,
             this._on_block_loaded.bind(this, block_info));
         return block_info;
     },
@@ -102,12 +115,8 @@ cc.Class({
         } else if(block_info.state == 'load') {
             block_info.root_node.destroy();
             block_info.root_node = null;
-            if(block_info.resources_depends) {
-                for (i = 0; i < block_info.resources_depends.length; i ++) {
-                    this._res_refdec(block_info.resources_depends[i]);
-                }
-                block_info.resources_depends = null;
-            }
+            this._res_refdec(block_info.resources_depends);
+            block_info.resources_depends = null;
             block_info.state = 'release';
             return true;
         } else {
@@ -123,6 +132,8 @@ cc.Class({
             this.set_global('resources', resources);
         }
         this._resources = resources;
+        var cur_scene_res = cc.director.getScene().dependAssets;
+        this._res_refinc(cur_scene_res);
     },
     
     update_rule: function (dt) {
