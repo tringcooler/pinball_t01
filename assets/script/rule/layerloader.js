@@ -15,10 +15,6 @@ cc.Class({
         // },
         // ...
         
-        layer: {
-            default: null,
-            type: cc.Node,
-        },
     },
     
     statics: {
@@ -70,15 +66,20 @@ cc.Class({
         }
     },
     
+    _get_node_by_name: function (scene, name) {
+        var node_path = name.split('/');
+        var node = scene.getChildByName('Canvas');
+        for(i = 0; i < node_path.length; i ++) {
+            node = node.getChildByName(node_path[i]);
+        }
+        return node;
+    },
+    
     _on_block_loaded: function (block_info, err, asset) {
         var i;
         var scene = asset.scene;
-        var node_path = block_info.node_name.split('/');
-        var dst_node = scene.getChildByName('Canvas');
-        for(i = 0; i < node_path.length; i ++) {
-            dst_node = dst_node.getChildByName(node_path[i]);
-        }
-        this._update_loaded_node(dst_node, this.layer);
+        var dst_node = this._get_node_by_name(scene, block_info.node_name);
+        this._update_loaded_node(dst_node, block_info.layer);
         dst_node.x += block_info.position.x;
         dst_node.y += block_info.position.y;
         block_info.root_node = dst_node;
@@ -89,11 +90,15 @@ cc.Class({
     },
     
     // async
-    load_block: function (scene_name, node_name, position) {
+    load_block: function (scene_name, node_name, layer, position) {
+        if(typeof layer == 'string') {
+            layer = this._get_node_by_name(cc.director.getScene(), layer);
+        }
         var block_info = {
             scene_name: scene_name,
             node_name: node_name,
             key_name: scene_name + '/' + node_name,
+            layer: layer,
             position: position,
             state: 'init',
             root_node: null,
