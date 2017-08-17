@@ -73,7 +73,8 @@ cc.Class({
         if(!this._update_cur_z()) {
             return false;
         }
-        this.node.scale = this.z_base / this.z_distance / this.base_scale;
+        var scale = this.z_base / this.z_distance / this.base_scale;
+        this.node.scale = scale / this.camera.zoomRatio;
         return true;
     },
     
