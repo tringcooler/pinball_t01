@@ -90,7 +90,7 @@ cc.Class({
     },
     
     // async
-    load_block: function (scene_name, node_name, layer, position) {
+    load_block: function (scene_name, node_name, layer, position = cc.Vec2.ZERO) {
         if(typeof layer == 'string') {
             layer = this._get_node_by_name(cc.director.getScene(), layer);
         }

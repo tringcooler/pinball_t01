@@ -42,5 +42,14 @@ module.exports = {
         };
         setTimeout(async_f, 100);
         return [plt1, rgd];
-    }
+    },
+    
+    ls2_load: function () {
+        var camera = cc.find('Canvas/camera');
+        var ll = camera.getComponent('layerloader');
+        var blk1 = ll.load_block('test_loadscene_2_res', 'layer_bg1', 'scroller/bg2_layer');
+        var blk2 = ll.load_block('test_loadscene_2_res', 'layer_bg2', 'scroller/bg3_layer');
+        var blk3 = ll.load_block('test_loadscene_2_res', 'layer_bg3', 'scroller/bg4_layer');
+        return [camera, ll, blk1, blk2, blk3];
+    },
 };
