@@ -58,6 +58,18 @@ cc.Class({
         return glb_pos.div(real_scale);
     },
     
+    get_cam_pos_global: function () {
+        return this.cam_stat.pos;
+    },
+    
+    get_cam_pos_local: function () {
+        return this.pos_global2local(this.cam_stat.pos);
+    },
+    
+    get_cam_pos_layer: function () {
+        return this.pos_global2layer(this.cam_stat.pos);
+    },
+    
     _update_cur_z: function () {
         if(this.cam_stat.scale == this.camera.zoomRatio) {
             return false;
