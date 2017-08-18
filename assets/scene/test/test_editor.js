@@ -134,6 +134,8 @@ cc.Class({
             //Editor.log('search:', sc);
             //this.savebat(sc, 'E:\\temp\\table5\\t02');
             //this.copydir('E:\\CocosCreator\\resources\\app.asar', 'E:\\temp\\table5\\t05');
+            //editor-framework/lib/main/protocol.js: Protocol.register
+            Editor.log('gizmo:', Editor.url('app://editor/page/gizmos/elements/collider', 'utf8'));
             Editor.log('done');
         }
     },

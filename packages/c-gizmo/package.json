@@ -1,0 +1,9 @@
+{
+  "name": "c-gizmo",
+  "version": "0.0.1",
+  "description": "gizmos for editor.",
+  "main": "main.js",
+  "gizmos": {
+    "layerresinfo": "packages://c-gizmo/collider/polygon-collider-gizmo.js"
+  }
+}
