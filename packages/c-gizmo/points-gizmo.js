@@ -26,6 +26,8 @@ class points_gizmo extends Editor.Gizmo {
 		let line_check = line_comb.line(p1.x, p1.y, p2.x, p2.y)
 			.style("stroke-width", 8)
 			.style("stroke-opacity", 0);
+		this.registerMoveSvg(line_comb, 'tt_line');
+		node._pool.push(line_comb);
 		return line_comb;
 	}
 	
@@ -35,7 +37,9 @@ class points_gizmo extends Editor.Gizmo {
 			.radius(2);
 		let circle_check = circle_comb.circle()
 			.radius(4)
-			.style("fill-opacity", 0);;
+			.style("fill-opacity", 0);
+		this.registerMoveSvg(circle_comb, 'tt_points');
+		node._pool.push(circle_comb);
 		return circle_comb;
 	}
 	
@@ -58,26 +62,29 @@ class points_gizmo extends Editor.Gizmo {
 		let shape = this._tool.polygon()
 			.fill({color: this._colors.shape})
 			.stroke('none')
-			.style('pointer-events', 'fill')
+			.style('pointer-events', 'fill');
+		this.registerMoveSvg(shape, 'tt_shape');
 		tool._shape = shape;
 		
 		let lines = this._tool.group()
-			.stroke({color: this._colors.lines}),
 			.style('pointer-events', 'stroke')
 			.style('cursor', 'copy')
 			.hide();
+		this._set_paint_hndl(lines, this._colors.lines, 'stroke');
+		lines._pool = [];
 		tool._lines = lines;
 		
 		let points = this._tool.group()
-			.fill({color: this._colors.shape})
 			.stroke('none')
 			.style('pointer-events', 'bounding-box')
 			.style('cursor', 'pointer')
 			.hide();
+		this._set_paint_hndl(points, this._colors.points, 'fill');
+		points._pool = [];
 		tool._points = points;
 		
 		tool.on('mousemove', (ev) => {
-			var cutting = e.ctrlKey || e.metaKey;
+			var cutting = ev.ctrlKey || ev.metaKey;
 			if(cutting != this._cutting_mode) {
 				this._cutting_mode = cutting;
 				if(this._cutting_mode) {
@@ -87,6 +94,11 @@ class points_gizmo extends Editor.Gizmo {
 				}
 			}
 		});
+		
+		// as method, don't use arrow function
+		tool._plot = function () {
+			
+		};
 		
 		this._tool = tool;
 	}
