@@ -4,6 +4,6 @@
   "description": "gizmos for editor.",
   "main": "main.js",
   "gizmos": {
-    "layerresinfo": "packages://c-gizmo/collider/polygon-collider-gizmo.js"
+    "layerresinfo": "packages://c-gizmo/points-gizmo.js"
   }
 }
