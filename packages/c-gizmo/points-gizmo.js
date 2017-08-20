@@ -35,7 +35,8 @@ class points_gizmo extends Editor.Gizmo {
 	_get_elm_from_pool (node, idx) {
 		let pool = node._pool;
 		while(idx >= pool.length) {
-			pool.push(node._new_elm(node));
+			let elm = node._new_elm(node, pool.length);
+			pool.push(elm);
 		}
 		return pool[idx];
 	}
@@ -54,7 +55,7 @@ class points_gizmo extends Editor.Gizmo {
 			.fill({color: this._colors.shape})
 			.stroke('none')
 			.style('pointer-events', 'fill');
-		this.registerMoveSvg(shape, 'tt_shape');
+		this.registerMoveSvg(shape, {type:'tt_shape'});
 		tool._shape = shape;
 		
 		let lines = tool.group()
@@ -62,9 +63,9 @@ class points_gizmo extends Editor.Gizmo {
 			.hide();
 		lines._pool = [];
 		// as non-method function with this: gizmo
-		lines._new_elm = (node) => {
+		lines._new_elm = (node, arg) => {
 			let line_comb = node.group()
-				.style('cursor', 'copy');
+				.style('cursor', 'cell');
 			let line_draw = line_comb.line()
 				.style("stroke-width", 1);
 			let line_check = line_comb.line()
@@ -75,7 +76,7 @@ class points_gizmo extends Editor.Gizmo {
 				line_check.plot.apply(line_check, args);
 			};
 			this._set_paint_hndl(line_comb, this._colors.lines, 'stroke');
-			this.registerMoveSvg(line_comb, 'tt_line');
+			this.registerMoveSvg(line_comb, {type: 'tt_lines', arg: arg});
 			return line_comb;
 		};
 		tool._lines = lines;
@@ -85,17 +86,17 @@ class points_gizmo extends Editor.Gizmo {
 			.hide();
 		points._pool = [];
 		// as non-method function with this: gizmo
-		points._new_elm = (node) => {
+		points._new_elm = (node, arg) => {
 			let circle_comb = node.group()
 				.style('pointer-events', 'bounding-box')
 				.style('cursor', 'pointer');
 			let circle_draw = circle_comb.circle()
-				.radius(3);
+				.radius(2.5);
 			let circle_check = circle_comb.circle()
 				.radius(4)
 				.style("fill-opacity", 0);
 			this._set_paint_hndl(circle_comb, this._colors.points, 'fill');
-			this.registerMoveSvg(circle_comb, 'tt_points');
+			this.registerMoveSvg(circle_comb, {type:'tt_points', arg: arg});
 			return circle_comb;
 		};
 		tool._points = points;
@@ -127,12 +128,127 @@ class points_gizmo extends Editor.Gizmo {
 				line_elm.show();
 				point_elm.show();
 			}
-			this._hide_elms_from_pool(lines);
-			this._hide_elms_from_pool(points);
+			this._hide_elms_from_pool(lines, ps.length);
+			this._hide_elms_from_pool(points, ps.length);
 			shape.plot(ps);
 		};
 		
 		this._tool = tool;
+	}
+	
+	onCreateMoveCallbacks () {
+		let start_pos, first_update;
+		let pidx_shift;
+		let vproj = (vs, vb) => vb.mul(vb.dot(vs) / vb.dot(vb));
+		let vprojp = (vs, vb) => vs.sub(vproj(vs, vb));
+		let vproja = (vs, vb) => {let t = vproj(vs, vb); return [t. vs.sub(t)];};
+		return {
+			start: (x, y, ev, args) => {
+				if(!this._editing_mode) return;
+				let s_ps = this.target.points;
+				if(args.type == 'tt_shape') {
+					start_pos = this.target.offset.clone();
+				} else if(args.type == 'tt_points') {
+					let idx = args.arg;
+					if(this._cutting_mode) {
+						this.recordChanges();
+						s_ps.splice(idx, 1);
+						this.commitChanges();
+					} else {
+						start_pos = s_ps[idx].clone();
+					}
+				} else if(args.type == 'tt_lines') {
+					let idx1 = args.arg;
+					let idx2 = (idx1 + 1) % s_ps.length;
+					let s_node = this.target.node;
+					let s_p1 = s_ps[idx1];
+					let s_p2 = s_ps[idx2];
+					if(this._cutting_mode) {
+						let loc_pos = s_node.convertToNodeSpaceAR(cc.v2(x, y)).sub(this.target.offset);
+						let vline = s_p2.sub(s_p1);
+						let vsel = loc_pos.sub(s_p1);
+						let d_p = vproj(vsel, vline).add(s_p1);
+						this.adjustValue(d_p);
+						this.recordChanges();
+						s_ps.splice(idx2, 0, d_p);
+						this.commitChanges();
+					} else {
+						start_pos = [s_p1.clone(), s_p2.clone()];
+						pidx_shift = 0;
+					}
+				}
+				first_update = true;
+			},
+			update: (dx, dy, ev, args) => {
+				if(!this._editing_mode) return;
+				let s_ps = this.target.points;
+				let s_node = this.target.node;
+				let loc_d = s_node.convertToNodeSpaceAR(cc.v2(dx, dy)).sub(s_node.convertToNodeSpaceAR(cc.Vec2.ZERO));
+				if(args.type == 'tt_shape') {
+					this.adjustValue(loc_d);
+					this.target.offset = start_pos.add(loc_d);
+				} else if(args.type == 'tt_points') {
+					let idx = args.arg;
+					if(!this._cutting_mode) {
+						this.adjustValue(loc_d);
+						s_ps[idx] = start_pos.add(loc_d);
+					}
+				} else if(args.type == 'tt_lines') {
+					if(!this._cutting_mode) {
+						let pmod = (v, l) => {let t = v % l; return t < 0 ? t + l : t;};
+						let idx = (i) => pmod(args.arg + pidx_shift + i, s_ps.length);
+						let s_p = (i) => s_ps[idx(i)];
+						let vline = (i) => s_p(i+1).sub(s_p(i));
+						let v_d = vprojp(loc_d, vline(0));
+						if(v_d.mag() <= 0.0001) {
+							// without clean first_update flag
+							return;
+						}
+						let par = (i) => vprojp(v_d, vline(i)).mag() / v_d.mag() < 0.005;
+						let extend_line = (di, si) => {
+							// float for the same index value, actually they always are the same.
+							let [pi, npi] = si > di ? [si, si + 1 + 0.2] : [di, di + 0.8];
+							let d_p = start_pos[pi].add(v_d);
+							this.adjustValue(d_p);
+							let pidx, cr;
+							if( (!first_update) || par(di)) {
+								pidx = idx(pi);
+								cr = false;
+							} else {
+								pidx = idx(npi);
+								cr = true;
+							}
+							return [d_p, pidx, cr];
+						};
+						let hndl_points = (hs) => {
+							let crtbl = {};
+							for(let i = 0; i < hs.length; i++) {
+								let [d_p, pidx, cr] = hs[i];
+								if(!cr) {
+									s_ps[pidx] = d_p;
+								} else {
+									crtbl[pidx] = d_p;
+								}
+							}
+							// I don't know why .map(parseInt) get something like [1, NaN, NaN]
+							let pidxs = Object.keys(crtbl).map((v)=>parseFloat(v)).sort((a, b)=>b-a);
+							for(let i = 0; i < pidxs.length; i++) {
+								let _pidx = pidxs[i];
+								// 1.5 for 1 plus and 1 pass
+								if(_pidx <= idx(1.5)) {
+									pidx_shift ++;
+								}
+								s_ps.splice(parseInt(_pidx), 0, crtbl[_pidx]);
+							}
+						};
+						hndl_points([extend_line(-1, 0), extend_line(1, 0)]);
+					}
+				}
+				first_update = false;
+			},
+			// end: (updated, ev, args) => {
+			// },
+		};
 	}
 	
 	onUpdate () {
@@ -188,11 +304,21 @@ class points_gizmo extends Editor.Gizmo {
 	}
 	
 	enter_cutting () {
-		this._tool._lines.style('cursor', 'pointer');
+		this._tool._lines.each((i, elms) => {
+			elms[i].style('cursor', 'copy');
+		});
+		this._tool._points.each((i, elms) => {
+			elms[i].style('cursor', 'alias');
+		});
 	}
 	
 	leave_cutting () {
-		this._tool._lines.style('cursor', 'copy');
+		this._tool._lines.each((i, elms) => {
+			elms[i].style('cursor', 'cell');
+		});
+		this._tool._points.each((i, elms) => {
+			elms[i].style('cursor', 'pointer');
+		});
 	}
 }
 
