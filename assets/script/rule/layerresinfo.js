@@ -13,8 +13,6 @@ cc.Class({
         // },
         // ...
         
-        offset: cc.v2(0, 0),
-        
         editing: {
             default: false,
             serializable: false,
@@ -29,9 +27,9 @@ cc.Class({
     },
 
     // use this for initialization
-    onLoad: function () {
+    // onLoad: function () {
 
-    },
+    // },
 
     // called every frame, uncomment this function to activate update callback
     // update: function (dt) {
