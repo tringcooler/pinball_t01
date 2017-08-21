@@ -147,7 +147,7 @@ class points_gizmo extends Editor.Gizmo {
 				if(!this._editing_mode) return;
 				let s_ps = this.target.points;
 				if(args.type == 'tt_shape') {
-					start_pos = this.target.offset.clone();
+					start_pos = s_ps.map((v)=>v.clone());
 				} else if(args.type == 'tt_points') {
 					let idx = args.arg;
 					if(this._cutting_mode) {
@@ -164,7 +164,7 @@ class points_gizmo extends Editor.Gizmo {
 					let s_p1 = s_ps[idx1];
 					let s_p2 = s_ps[idx2];
 					if(this._cutting_mode) {
-						let loc_pos = s_node.convertToNodeSpaceAR(cc.v2(x, y)).sub(this.target.offset);
+						let loc_pos = s_node.convertToNodeSpaceAR(cc.v2(x, y));
 						let vline = s_p2.sub(s_p1);
 						let vsel = loc_pos.sub(s_p1);
 						let d_p = vproj(vsel, vline).add(s_p1);
@@ -186,7 +186,9 @@ class points_gizmo extends Editor.Gizmo {
 				let loc_d = s_node.convertToNodeSpaceAR(cc.v2(dx, dy)).sub(s_node.convertToNodeSpaceAR(cc.Vec2.ZERO));
 				if(args.type == 'tt_shape') {
 					this.adjustValue(loc_d);
-					this.target.offset = start_pos.add(loc_d);
+					for(let i = 0; i < s_ps.length; i ++) {
+						s_ps[i] = start_pos[i].add(loc_d);
+					}
 				} else if(args.type == 'tt_points') {
 					let idx = args.arg;
 					if(!this._cutting_mode) {
@@ -253,12 +255,10 @@ class points_gizmo extends Editor.Gizmo {
 	
 	onUpdate () {
 		let s_ps = this.target.points;
-		let s_pos = this.target.offset;
 		let s_node = this.target.node;
 		let d_ps = [];
 		for(let i = 0; i < s_ps.length; i ++) {
-			let s_p = s_ps[i].add(s_pos);
-			let d_p = s_node.convertToWorldSpaceAR(s_p);
+			let d_p = s_node.convertToWorldSpaceAR(s_ps[i]);
 			d_p = this.worldToPixel(d_p);
 			d_p = Editor.GizmosUtils.snapPixelWihVec2(d_p);
 			d_ps.push([d_p.x, d_p.y]);
