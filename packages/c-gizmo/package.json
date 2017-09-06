@@ -4,6 +4,6 @@
   "description": "gizmos for editor.",
   "main": "main.js",
   "gizmos": {
-    "layerresinfo": "packages://c-gizmo/points-gizmo.js"
+    "layerresinfo_ps": "packages://c-gizmo/points-gizmo.js"
   }
 }
