@@ -16,12 +16,26 @@ cc.Class({
         // ...
     },
     
-    pos_block2layer: function (blk_pos, blk) {
-        return this.get_loc_pos(blk, blk_pos);
+    pos_block2layer: function (blk_pos, blk_info) {
+        return cc.pointApplyAffineTransform(blk_pos, blk_info.trans_block2layer);
     },
     
-    pos_layer2block: function (lyr_pos, blk) {
-        return this.get_rel_pos(blk, lyr_pos);
+    pos_layer2block: function (lyr_pos, blk_info) {
+        return cc.pointApplyAffineTransform(blk_pos, blk_info.trans_layer2block);
+    },
+    
+    _on_block_loaded: function (block_info, err, asset) {
+        this._super(block_info, err, asset);
+        var b_nd = block_info.root_node;
+        var res_info = b_nd.getComponent('layerresinfo');
+        var b2l_trans = b_nd.getNodeToParentTransformAR();
+        var l2b_trans = cc.affineTransformInvert(b2l_trans);
+        block_info.trans_block2layer = b2l_trans;
+        block_info.trans_layer2block = l2b_trans;
+        block_info.res_info = res_info;
+        if(!block_info.is_preload) {
+            //preload all blks related with this
+        }
     },
     
     init_rule: function () {

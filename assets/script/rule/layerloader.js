@@ -90,7 +90,7 @@ cc.Class({
     },
     
     // async
-    load_block: function (scene_name, node_name, layer, position = cc.Vec2.ZERO) {
+    load_block: function (scene_name, node_name, layer, position = cc.Vec2.ZERO, kargs = {}) {
         if(typeof layer == 'string') {
             layer = this._get_node_by_name(cc.director.getScene(), layer);
         }
@@ -104,6 +104,9 @@ cc.Class({
             root_node: null,
             resources_depends: null,
         };
+        for(var k in kargs) {
+            block_info[k] = kargs[k];
+        }
         var scene_info = cc.director._getSceneUuid(scene_name);
         cc.AssetLibrary.loadAsset(scene_info.uuid,
             this._on_block_loaded.bind(this, block_info));
