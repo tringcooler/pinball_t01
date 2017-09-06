@@ -1,7 +1,5 @@
-var layerresinfo = require('layerresinfo');
-
 cc.Class({
-    extends: layerresinfo,
+    extends: cc.Component,
 
     properties: {
         // foo: {
@@ -14,18 +12,6 @@ cc.Class({
         //    readonly: false,    // optional, default is false
         // },
         // ...
-        
-        editing: {
-            default: false,
-            serializable: false,
-        },
-        
-        points: {
-            default: function () {
-                 return [cc.v2(-50,-50), cc.v2(50, -50), cc.v2(50,50), cc.v2(-50,50)];
-            },
-            type: [cc.Vec2]
-        },
     },
 
     // use this for initialization
