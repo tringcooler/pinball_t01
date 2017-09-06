@@ -16,8 +16,18 @@ cc.Class({
         // ...
     },
     
+    pos_block2layer: function (blk_pos, blk) {
+        return this.get_loc_pos(blk, blk_pos);
+    },
+    
+    pos_layer2block: function (lyr_pos, blk) {
+        return this.get_rel_pos(blk, lyr_pos);
+    },
+    
     init_rule: function () {
         this._super();
+        this._shifter = this.node.getComponent('layershifter');
+        this._blks = [];
     },
     
     update_rule: function (dt) {
